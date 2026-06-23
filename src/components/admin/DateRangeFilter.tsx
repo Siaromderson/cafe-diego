@@ -21,15 +21,15 @@ export function DateRangeFilter() {
   }
 
   return (
-    <div className="glass flex flex-wrap items-center gap-2 rounded-2xl p-2.5">
+    <div className="glass flex flex-wrap items-center gap-1.5 rounded-2xl p-1.5">
       {RANGE_OPTIONS.map((o) => (
         <button
           key={o.key}
           onClick={() => go(o.key, o.key === "custom" ? { from, to } : undefined)}
-          className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+          className={`rounded-xl px-4 py-2 text-xs font-semibold tracking-wide transition-all duration-200 ${
             current === o.key
-              ? "btn-gold"
-              : "text-cream/70 hover:bg-white/8 hover:text-gold"
+              ? "scale-[1.03] bg-gradient-to-br from-gold to-amber text-espresso shadow-lg shadow-gold/25 ring-1 ring-gold/40"
+              : "text-cream/65 hover:bg-white/10 hover:text-gold active:scale-95"
           }`}
         >
           {o.label}

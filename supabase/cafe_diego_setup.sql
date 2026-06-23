@@ -114,12 +114,8 @@ create table if not exists cafe_diego_settings (
 );
 
 insert into cafe_diego_settings (key, value) values
-  ('free_shipping_city', 'Campo Grande'),
-  ('delivery_days', '2'),
-  ('whatsapp', '5567992220619'),
-  ('ship_sedex', '25,00'),
-  ('ship_pac', '24,00'),
-  ('ship_motoboy', '15,00')
+  ('delivery_fee', '15,00'),
+  ('whatsapp', '5567992220619')
 on conflict (key) do nothing;
 
 create table if not exists cafe_diego_admins (

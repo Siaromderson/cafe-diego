@@ -30,30 +30,34 @@ export function SalesChart({ data }: { data: ChartPoint[] }) {
         <span className="text-xs text-cream/45">{totalOrders} pedidos pagos</span>
       </div>
 
-      <div className="mt-5 flex h-40 items-end gap-1.5 sm:gap-2">
+      <div className="mt-5 flex h-44 items-stretch gap-1.5 overflow-hidden sm:gap-2">
         {data.map((d, i) => {
           const pct = (d.revenueCents / max) * 100;
           return (
             <div
               key={i}
-              className="group flex flex-1 flex-col items-center justify-end gap-1"
+              className="group flex min-w-0 flex-1 flex-col items-center justify-end gap-1"
               title={`${d.label}: ${BRL(d.revenueCents)} · ${d.orders} pedido(s)`}
             >
-              <span className="text-[10px] text-cream/0 transition-colors group-hover:text-gold">
+              <span className="h-3.5 truncate text-[10px] leading-none text-cream/0 transition-colors group-hover:text-gold">
                 {d.revenueCents > 0 ? BRL(d.revenueCents) : ""}
               </span>
-              <div
-                className="w-full origin-bottom rounded-t-md transition-[filter] group-hover:brightness-110"
-                style={{
-                  height: `${Math.max(pct, d.revenueCents > 0 ? 4 : 1.5)}%`,
-                  background:
-                    d.revenueCents > 0
-                      ? "linear-gradient(180deg, #e7c987 0%, #d98a3d 45%, #cf2b22 100%)"
-                      : "rgba(245,236,217,0.08)",
-                  animation: `grow-bar 0.5s cubic-bezier(0.22,1,0.36,1) ${i * 0.04}s both`,
-                }}
-              />
-              <span className="text-[9px] text-cream/40">{d.label}</span>
+              <div className="flex w-full flex-1 items-end">
+                <div
+                  className="w-full origin-bottom rounded-t-md transition-[filter] group-hover:brightness-110"
+                  style={{
+                    height: `${Math.max(pct, d.revenueCents > 0 ? 4 : 1.5)}%`,
+                    background:
+                      d.revenueCents > 0
+                        ? "linear-gradient(180deg, #e7c987 0%, #d98a3d 45%, #cf2b22 100%)"
+                        : "rgba(245,236,217,0.08)",
+                    animation: `grow-bar 0.5s cubic-bezier(0.22,1,0.36,1) ${i * 0.04}s both`,
+                  }}
+                />
+              </div>
+              <span className="w-full truncate text-center text-[9px] text-cream/40">
+                {d.label}
+              </span>
             </div>
           );
         })}

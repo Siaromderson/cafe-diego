@@ -3,7 +3,8 @@ import { hasSupabase, hasNupay, env } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { getProducts } from "@/lib/products-repo";
 import { createNupayPayment } from "@/lib/nupay";
-import { getShippingConfig, isFreeCity } from "@/lib/shipping";
+import { getShippingConfig, isPickup, PICKUP_KEY } from "@/lib/shipping";
+import { feeCentsFor, PAY_BY_KEY } from "@/lib/payments";
 import { T } from "@/lib/tables";
 
 interface CheckoutBody {
@@ -19,6 +20,7 @@ interface CheckoutBody {
   };
   items: { id: string; qty: number }[];
   shippingMethod?: string;
+  paymentMethod?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -29,14 +31,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  const { customer, address, items, shippingMethod } = body;
+  const { customer, address, items, shippingMethod, paymentMethod } = body;
+  const pickup = isPickup(shippingMethod);
   if (!customer?.name || !customer?.phone || !customer?.email) {
     return NextResponse.json(
       { error: "Preencha nome, telefone e e-mail." },
       { status: 400 }
     );
   }
-  if (!address?.cep || !address?.street || !address?.number) {
+  // Endereço só é obrigatório quando há entrega (retirada no local dispensa).
+  if (!pickup && (!address?.cep || !address?.street || !address?.number)) {
     return NextResponse.json(
       { error: "Endereço incompleto." },
       { status: 400 }
@@ -72,29 +76,22 @@ export async function POST(req: NextRequest) {
 
   // ---- Frete (validado no servidor a partir das configurações) ----
   const shipConfig = await getShippingConfig();
-  const freeCity = isFreeCity(address.city ?? "", shipConfig.freeCity);
-  let shippingCents = 0;
-  let shippingLabel = "Grátis";
+  const chosen =
+    shipConfig.options.find((o) => o.key === shippingMethod) ??
+    shipConfig.options.find((o) => o.key === PICKUP_KEY)!;
+  const shippingCents = pickup ? 0 : chosen.cents;
+  const shippingLabel = chosen.label;
 
-  if (!freeCity) {
-    const chosen = shipConfig.options.find((o) => o.key === shippingMethod);
-    if (!chosen) {
-      return NextResponse.json(
-        {
-          error:
-            "Selecione uma forma de entrega (frete) para o seu endereço.",
-        },
-        { status: 400 }
-      );
-    }
-    shippingCents = chosen.cents;
-    shippingLabel = chosen.label;
-  }
+  // ---- Taxa da forma de pagamento (repassada ao cliente) ----
+  const payMethod = paymentMethod ?? "pix";
+  const feeCents = feeCentsFor(payMethod, subtotalCents + shippingCents);
+  const payLabel = PAY_BY_KEY.get(payMethod as never)?.label ?? "Pix";
 
-  const totalCents = subtotalCents + shippingCents;
+  const totalCents = subtotalCents + shippingCents + feeCents;
   const referenceId = `CF-${Date.now().toString(36).toUpperCase()}`;
+  // Entrega em até 24h; retirada no local fica disponível no mesmo dia.
   const eta = new Date();
-  eta.setDate(eta.getDate() + 2);
+  eta.setDate(eta.getDate() + 1);
 
   // ---- Cria o pedido ----
   let orderId = referenceId;
@@ -135,7 +132,7 @@ export async function POST(req: NextRequest) {
         status: "pending",
         total_cents: totalCents,
         shipping_cents: shippingCents,
-        shipping_method: freeCity ? "free" : shippingMethod,
+        shipping_method: pickup ? PICKUP_KEY : shippingMethod ?? "delivery",
         reference_id: referenceId,
         customer_name: customer.name,
         customer_phone: customer.phone,
@@ -203,6 +200,16 @@ export async function POST(req: NextRequest) {
                 name: `Frete (${shippingLabel})`,
                 quantity: 1,
                 unitAmount: shippingCents / 100,
+              },
+            ]
+          : []),
+        ...(feeCents > 0
+          ? [
+              {
+                reference: "taxa",
+                name: `Taxa (${payLabel})`,
+                quantity: 1,
+                unitAmount: feeCents / 100,
               },
             ]
           : []),

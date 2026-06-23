@@ -5,12 +5,16 @@ import Link from "next/link";
 import { BRL } from "@/lib/types";
 import { useCart } from "@/store/cart";
 import { BrandMark } from "@/components/BrandMark";
+import { PAY_METHODS, feeCentsFor } from "@/lib/payments";
 
 interface ShipOption {
   key: string;
   label: string;
   cents: number;
+  eta: string;
 }
+
+const PICKUP_KEY = "pickup";
 
 export default function CheckoutPage() {
   const { lines, total, clear } = useCart();
@@ -18,15 +22,14 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [cepLoading, setCepLoading] = useState(false);
 
-  const [freeCity, setFreeCity] = useState("Campo Grande");
   const [shipOptions, setShipOptions] = useState<ShipOption[]>([]);
-  const [shipMethod, setShipMethod] = useState<string>("");
+  const [shipMethod, setShipMethod] = useState<string>("delivery");
+  const [payMethod, setPayMethod] = useState<string>("pix");
 
   useEffect(() => {
     fetch("/api/shipping")
       .then((r) => r.json())
       .then((d) => {
-        if (d?.freeCity) setFreeCity(d.freeCity);
         if (Array.isArray(d?.options)) setShipOptions(d.options);
       })
       .catch(() => {});
@@ -46,8 +49,7 @@ export default function CheckoutPage() {
     reference: "",
   });
 
-  const set = (k: string, v: string) =>
-    setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   async function lookupCep(raw: string) {
     const cep = raw.replace(/\D/g, "");
@@ -71,12 +73,12 @@ export default function CheckoutPage() {
     }
   }
 
-  const cityOk =
-    form.city.trim().toLowerCase() === freeCity.trim().toLowerCase();
-
+  const isPickup = shipMethod === PICKUP_KEY;
   const selectedOption = shipOptions.find((o) => o.key === shipMethod);
-  const shippingCents = cityOk ? 0 : selectedOption?.cents ?? 0;
-  const grandTotal = total() + shippingCents;
+  const shippingCents = isPickup ? 0 : selectedOption?.cents ?? 0;
+  const subtotal = total();
+  const feeCents = feeCentsFor(payMethod, subtotal + shippingCents);
+  const grandTotal = subtotal + shippingCents + feeCents;
 
   async function submit() {
     setError(null);
@@ -84,23 +86,15 @@ export default function CheckoutPage() {
       setError("Preencha nome, telefone e e-mail.");
       return;
     }
-    if (!form.cep || !form.street || !form.number || !form.district) {
-      setError("Complete o endereço de entrega.");
-      return;
-    }
-    if (!form.city) {
-      setError("Informe a cidade de entrega.");
-      return;
-    }
-    if (!cityOk && shipOptions.length === 0) {
-      setError(
-        `No momento entregamos apenas em ${freeCity}. Fale com a gente no WhatsApp para outras cidades.`
-      );
-      return;
-    }
-    if (!cityOk && !selectedOption) {
-      setError("Selecione uma forma de entrega (frete).");
-      return;
+    if (!isPickup) {
+      if (!form.cep || !form.street || !form.number || !form.district) {
+        setError("Complete o endereço de entrega.");
+        return;
+      }
+      if (!form.city) {
+        setError("Informe a cidade de entrega.");
+        return;
+      }
     }
     setLoading(true);
     try {
@@ -124,7 +118,8 @@ export default function CheckoutPage() {
             reference: form.reference,
           },
           items: lines.map((l) => ({ id: l.product.id, qty: l.qty })),
-          shippingMethod: cityOk ? undefined : shipMethod,
+          shippingMethod: shipMethod,
+          paymentMethod: payMethod,
         }),
       });
       const data = await res.json();
@@ -174,7 +169,8 @@ export default function CheckoutPage() {
             Finalizar pedido
           </h1>
           <p className="mt-1 text-sm text-cream/60">
-            Pague com Pix, débito ou crédito. Frete grátis em {freeCity}.
+            Pague com Pix, débito ou crédito. ⚡ Entrega em até 24h ou retire no
+            local sem custo.
           </p>
 
           <h2 className="font-display mt-7 text-lg text-gold">Seus dados</h2>
@@ -206,109 +202,147 @@ export default function CheckoutPage() {
             />
           </div>
 
+          {/* Forma de entrega */}
           <h2 className="font-display mt-7 text-lg text-gold">
-            Endereço de entrega
+            Como você quer receber?
           </h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-6">
-            <div className="sm:col-span-2">
-              <input
-                className={input}
-                placeholder="CEP"
-                value={form.cep}
-                onChange={(e) => set("cep", e.target.value)}
-                onBlur={(e) => lookupCep(e.target.value)}
-              />
-              {cepLoading && (
-                <span className="mt-1 block text-xs text-gold/70">
-                  buscando…
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {shipOptions.map((o) => (
+              <label
+                key={o.key}
+                className={`flex cursor-pointer flex-col gap-1 rounded-xl border px-4 py-3 text-sm transition-colors ${
+                  shipMethod === o.key
+                    ? "border-gold/60 bg-gold/10 text-cream"
+                    : "border-white/12 bg-white/5 text-cream/80 hover:border-gold/40"
+                }`}
+              >
+                <span className="flex items-center justify-between">
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="ship"
+                      className="accent-gold"
+                      checked={shipMethod === o.key}
+                      onChange={() => setShipMethod(o.key)}
+                    />
+                    {o.label}
+                  </span>
+                  <span className="text-gold">
+                    {o.cents > 0 ? BRL(o.cents) : "Grátis"}
+                  </span>
                 </span>
-              )}
-            </div>
-            <input
-              className={`${input} sm:col-span-4`}
-              placeholder="Rua / Logradouro"
-              value={form.street}
-              onChange={(e) => set("street", e.target.value)}
-            />
-            <input
-              className={`${input} sm:col-span-2`}
-              placeholder="Número"
-              value={form.number}
-              onChange={(e) => set("number", e.target.value)}
-            />
-            <input
-              className={`${input} sm:col-span-4`}
-              placeholder="Complemento (opcional)"
-              value={form.complement}
-              onChange={(e) => set("complement", e.target.value)}
-            />
-            <input
-              className={`${input} sm:col-span-3`}
-              placeholder="Bairro"
-              value={form.district}
-              onChange={(e) => set("district", e.target.value)}
-            />
-            <input
-              className={`${input} sm:col-span-3`}
-              placeholder="Cidade"
-              value={form.city}
-              onChange={(e) => set("city", e.target.value)}
-            />
-            <input
-              className={`${input} sm:col-span-6`}
-              placeholder="Ponto de referência (opcional)"
-              value={form.reference}
-              onChange={(e) => set("reference", e.target.value)}
-            />
+                <span className="pl-7 text-xs text-cream/50">{o.eta}</span>
+              </label>
+            ))}
           </div>
 
-          {form.city && cityOk && (
-            <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
-              Frete grátis para {freeCity}. 🎉
-            </p>
-          )}
-
-          {form.city && !cityOk && shipOptions.length > 0 && (
-            <div className="mt-4">
-              <h2 className="font-display text-lg text-gold">
-                Forma de entrega
+          {/* Endereço — só quando há entrega */}
+          {!isPickup && (
+            <>
+              <h2 className="font-display mt-7 text-lg text-gold">
+                Endereço de entrega
               </h2>
-              <p className="mt-1 text-xs text-cream/50">
-                Fora de {freeCity} o frete é cobrado à parte. Escolha uma opção:
-              </p>
-              <div className="mt-3 grid gap-2">
-                {shipOptions.map((o) => (
-                  <label
-                    key={o.key}
-                    className={`flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 text-sm transition-colors ${
-                      shipMethod === o.key
-                        ? "border-gold/60 bg-gold/10 text-cream"
-                        : "border-white/12 bg-white/5 text-cream/80 hover:border-gold/40"
-                    }`}
-                  >
-                    <span className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="ship"
-                        className="accent-gold"
-                        checked={shipMethod === o.key}
-                        onChange={() => setShipMethod(o.key)}
-                      />
-                      {o.label}
+              <div className="mt-3 grid gap-3 sm:grid-cols-6">
+                <div className="sm:col-span-2">
+                  <input
+                    className={input}
+                    placeholder="CEP"
+                    value={form.cep}
+                    onChange={(e) => set("cep", e.target.value)}
+                    onBlur={(e) => lookupCep(e.target.value)}
+                  />
+                  {cepLoading && (
+                    <span className="mt-1 block text-xs text-gold/70">
+                      buscando…
                     </span>
-                    <span className="text-gold">{BRL(o.cents)}</span>
-                  </label>
-                ))}
+                  )}
+                </div>
+                <input
+                  className={`${input} sm:col-span-4`}
+                  placeholder="Rua / Logradouro"
+                  value={form.street}
+                  onChange={(e) => set("street", e.target.value)}
+                />
+                <input
+                  className={`${input} sm:col-span-2`}
+                  placeholder="Número"
+                  value={form.number}
+                  onChange={(e) => set("number", e.target.value)}
+                />
+                <input
+                  className={`${input} sm:col-span-4`}
+                  placeholder="Complemento (opcional)"
+                  value={form.complement}
+                  onChange={(e) => set("complement", e.target.value)}
+                />
+                <input
+                  className={`${input} sm:col-span-3`}
+                  placeholder="Bairro"
+                  value={form.district}
+                  onChange={(e) => set("district", e.target.value)}
+                />
+                <input
+                  className={`${input} sm:col-span-3`}
+                  placeholder="Cidade"
+                  value={form.city}
+                  onChange={(e) => set("city", e.target.value)}
+                />
+                <input
+                  className={`${input} sm:col-span-6`}
+                  placeholder="Ponto de referência (opcional)"
+                  value={form.reference}
+                  onChange={(e) => set("reference", e.target.value)}
+                />
               </div>
-            </div>
+
+              {form.cep.replace(/\D/g, "").length === 8 && selectedOption && (
+                <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
+                  Frete <strong>{BRL(shippingCents)}</strong> · {selectedOption.eta}.
+                </p>
+              )}
+            </>
           )}
 
-          {form.city && !cityOk && shipOptions.length === 0 && (
-            <p className="mt-3 rounded-xl border border-wine-bright/40 bg-wine/20 px-4 py-3 text-sm text-cream/80">
-              No momento entregamos apenas em {freeCity}. Para outras cidades,
-              fale conosco no WhatsApp.
+          {isPickup && (
+            <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
+              Você retira no local, sem custo de entrega. 🛍️ Avisamos no
+              WhatsApp quando estiver pronto.
             </p>
           )}
+
+          {/* Forma de pagamento */}
+          <h2 className="font-display mt-7 text-lg text-gold">
+            Forma de pagamento
+          </h2>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {PAY_METHODS.map((m) => (
+              <label
+                key={m.key}
+                className={`flex cursor-pointer flex-col gap-0.5 rounded-xl border px-4 py-3 text-sm transition-colors ${
+                  payMethod === m.key
+                    ? "border-gold/60 bg-gold/10 text-cream"
+                    : "border-white/12 bg-white/5 text-cream/80 hover:border-gold/40"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="pay"
+                    className="accent-gold"
+                    checked={payMethod === m.key}
+                    onChange={() => setPayMethod(m.key)}
+                  />
+                  {m.label}
+                </span>
+                <span className="pl-6 text-xs text-cream/50">
+                  {m.feePct > 0
+                    ? `+ ${m.feePct.toLocaleString("pt-BR")}% de taxa`
+                    : "Sem taxa"}
+                </span>
+              </label>
+            ))}
+          </div>
+
           {error && (
             <p className="mt-4 rounded-xl border border-wine-bright/50 bg-wine/25 px-4 py-3 text-sm text-cream">
               {error}
@@ -337,25 +371,20 @@ export default function CheckoutPage() {
           <div className="gold-hairline my-4" />
           <div className="flex justify-between text-sm text-cream/70">
             <span>Subtotal</span>
-            <span className="text-cream/90">{BRL(total())}</span>
+            <span className="text-cream/90">{BRL(subtotal)}</span>
           </div>
           <div className="mt-2 flex justify-between text-sm text-cream/70">
-            <span>
-              Frete
-              {cityOk
-                ? ` (${freeCity})`
-                : selectedOption
-                  ? ` (${selectedOption.label})`
-                  : ""}
-            </span>
+            <span>{isPickup ? "Retirada no local" : "Entrega"}</span>
             <span className="text-gold">
-              {cityOk
-                ? "Grátis"
-                : selectedOption
-                  ? BRL(shippingCents)
-                  : "a calcular"}
+              {shippingCents > 0 ? BRL(shippingCents) : "Grátis"}
             </span>
           </div>
+          {feeCents > 0 && (
+            <div className="mt-2 flex justify-between text-sm text-cream/70">
+              <span>Taxa de pagamento</span>
+              <span className="text-gold">{BRL(feeCents)}</span>
+            </div>
+          )}
           <div className="mt-3 flex items-end justify-between">
             <span className="text-cream/70">Total</span>
             <span className="font-display text-3xl font-semibold gold-text">

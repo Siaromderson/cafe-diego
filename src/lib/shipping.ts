@@ -2,23 +2,24 @@ import { hasSupabase } from "./env";
 import { getSupabaseAdmin } from "./supabase/server";
 import { T } from "./tables";
 
-export const FREE_CITY_DEFAULT = "Campo Grande";
+/** Taxa de entrega padrão (em reais), ajustável no painel. */
+export const DELIVERY_FEE_DEFAULT = "15,00";
 
-/** Opções de frete configuráveis no painel (estilo da loja Ramita). */
-export const SHIP_METHODS = [
-  { key: "ship_sedex", label: "SEDEX", defaultReais: "25,00" },
-  { key: "ship_pac", label: "PAC", defaultReais: "24,00" },
-  { key: "ship_motoboy", label: "Motoboy", defaultReais: "15,00" },
-] as const;
+/** Chaves de entrega usadas em todo o app. */
+export const DELIVERY_KEY = "delivery";
+export const PICKUP_KEY = "pickup";
 
 export interface ShipOption {
   key: string;
   label: string;
   cents: number;
+  /** Texto curto de prazo mostrado no checkout. */
+  eta: string;
 }
 
 export interface ShippingConfig {
-  freeCity: string;
+  /** Valor da entrega (frete fixo) em centavos. */
+  deliveryCents: number;
   options: ShipOption[];
 }
 
@@ -29,7 +30,7 @@ export function reaisToCents(v: string | undefined | null): number {
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
 }
 
-/** Lê a configuração de frete a partir das settings (ou usa padrões). */
+/** Lê a configuração de entrega a partir das settings (ou usa padrões). */
 export async function getShippingConfig(): Promise<ShippingConfig> {
   let map = new Map<string, string>();
   if (hasSupabase) {
@@ -37,14 +38,28 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
     const { data } = await sb.from(T.settings).select("key, value");
     map = new Map((data ?? []).map((s) => [s.key, s.value]));
   }
-  const freeCity = map.get("free_shipping_city") || FREE_CITY_DEFAULT;
-  const options = SHIP_METHODS.map((m) => ({
-    key: m.key,
-    label: m.label,
-    cents: reaisToCents(map.get(m.key) ?? m.defaultReais),
-  })).filter((o) => o.cents > 0);
-  return { freeCity, options };
+  const deliveryCents = reaisToCents(
+    map.get("delivery_fee") ?? DELIVERY_FEE_DEFAULT
+  );
+
+  const options: ShipOption[] = [
+    {
+      key: PICKUP_KEY,
+      label: "Retirar no local",
+      cents: 0,
+      eta: "Retire quando quiser, sem custo",
+    },
+    {
+      key: DELIVERY_KEY,
+      label: "Entrega",
+      cents: deliveryCents,
+      eta: "Receba em até 24h",
+    },
+  ];
+
+  return { deliveryCents, options };
 }
 
-export const isFreeCity = (city: string, freeCity: string) =>
-  city.trim().toLowerCase() === freeCity.trim().toLowerCase();
+/** A chave de entrega escolhida é retirada no local? */
+export const isPickup = (method: string | undefined | null) =>
+  method === PICKUP_KEY;
