@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="560" viewBox="0 0 420 560">
+  <defs>
+    <linearGradient id="bagg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e7b95c"/>
+      <stop offset="0.5" stop-color="#b07c2a"/>
+      <stop offset="1" stop-color="#6e4715"/>
+    </linearGradient>
+    <linearGradient id="sheeng" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.45" stop-color="#fff" stop-opacity="0.35"/>
+      <stop offset="0.6" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="420" height="560" fill="#160b07"/>
+  <g>
+    <path d="M120 70 h180 v40 l-12 12 v360 a18 18 0 0 1 -18 18 h-120 a18 18 0 0 1 -18 -18 v-360 l-12 -12 z" fill="url(#bagg)"/>
+    <rect x="120" y="70" width="180" height="26" fill="#5c3a10"/>
+    <path d="M120 70 h180 v40 l-12 12 v360 a18 18 0 0 1 -18 18 h-120 a18 18 0 0 1 -18 -18 v-360 l-12 -12 z" fill="url(#sheeng)" opacity="0.55"/>
+    <rect x="150" y="230" width="120" height="150" rx="6" fill="#1c1209"/>
+    <rect x="150" y="230" width="120" height="150" rx="6" fill="none" stroke="#a01e1e" stroke-width="3"/>
+    <text x="210" y="290" text-anchor="middle" font-family="Georgia, serif" font-size="18" fill="#e7c987" font-weight="bold">100% ARÁBICA</text>
+    <text x="210" y="320" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#f5ecd9">TRADICIONAL</text>
+    <text x="210" y="362" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#e7c987">500 g</text>
+  </g>
+</svg>
