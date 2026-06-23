@@ -3,8 +3,13 @@ import { hasSupabase, hasNupay, env } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { getProducts } from "@/lib/products-repo";
 import { createNupayPayment } from "@/lib/nupay";
-import { getShippingConfig, isPickup, PICKUP_KEY } from "@/lib/shipping";
-import { feeCentsFor, PAY_BY_KEY } from "@/lib/payments";
+import {
+  getShippingConfig,
+  isPickup,
+  PICKUP_KEY,
+  getPaymentMethods,
+} from "@/lib/shipping";
+import { feeCentsForPct } from "@/lib/payments";
 import { T } from "@/lib/tables";
 
 interface CheckoutBody {
@@ -83,9 +88,14 @@ export async function POST(req: NextRequest) {
   const shippingLabel = chosen.label;
 
   // ---- Taxa da forma de pagamento (repassada ao cliente) ----
-  const payMethod = paymentMethod ?? "pix";
-  const feeCents = feeCentsFor(payMethod, subtotalCents + shippingCents);
-  const payLabel = PAY_BY_KEY.get(payMethod as never)?.label ?? "Pix";
+  const payMethods = await getPaymentMethods();
+  const chosenPay =
+    payMethods.find((m) => m.key === paymentMethod) ?? payMethods[0];
+  const feeCents = feeCentsForPct(
+    chosenPay.feePct,
+    subtotalCents + shippingCents
+  );
+  const payLabel = chosenPay.label;
 
   const totalCents = subtotalCents + shippingCents + feeCents;
   const referenceId = `CF-${Date.now().toString(36).toUpperCase()}`;

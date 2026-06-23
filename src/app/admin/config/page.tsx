@@ -44,6 +44,38 @@ export default async function AdminConfig() {
           value={map.get("whatsapp") ?? "5567992220619"}
         />
       </div>
+
+      <div className="flex items-center gap-2 pt-4">
+        <h2 className="font-display text-xl text-gold">Taxas de cartão</h2>
+        <HelpButton title="Taxas repassadas ao cliente">
+          <p>
+            Percentual somado ao total quando o cliente paga com cartão. O valor
+            aparece como <strong>“Taxa de pagamento”</strong> no checkout.
+          </p>
+          <p>
+            <strong>Pix</strong> nunca tem taxa. Deixe <strong>0</strong> para
+            não cobrar de uma forma.
+          </p>
+        </HelpButton>
+      </div>
+      <p className="text-sm text-cream/55">
+        Informe o percentual (ex.: <strong>4,5</strong> para 4,5%). Deixe{" "}
+        <strong>0</strong> para não cobrar taxa.
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SettingField
+          settingKey="fee_credit_pct"
+          label="Taxa do crédito (%)"
+          hint="Ex: 4,5"
+          value={map.get("fee_credit_pct") ?? "0"}
+        />
+        <SettingField
+          settingKey="fee_debit_pct"
+          label="Taxa do débito (%)"
+          hint="Ex: 1,8"
+          value={map.get("fee_debit_pct") ?? "0"}
+        />
+      </div>
     </div>
   );
 }

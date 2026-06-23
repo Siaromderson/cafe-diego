@@ -5,7 +5,7 @@ import Link from "next/link";
 import { BRL } from "@/lib/types";
 import { useCart } from "@/store/cart";
 import { BrandMark } from "@/components/BrandMark";
-import { PAY_METHODS, feeCentsFor } from "@/lib/payments";
+import { type PayMethod, feeCentsForPct } from "@/lib/payments";
 
 interface ShipOption {
   key: string;
@@ -24,6 +24,7 @@ export default function CheckoutPage() {
 
   const [shipOptions, setShipOptions] = useState<ShipOption[]>([]);
   const [shipMethod, setShipMethod] = useState<string>("delivery");
+  const [payMethods, setPayMethods] = useState<PayMethod[]>([]);
   const [payMethod, setPayMethod] = useState<string>("pix");
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export default function CheckoutPage() {
       .then((r) => r.json())
       .then((d) => {
         if (Array.isArray(d?.options)) setShipOptions(d.options);
+        if (Array.isArray(d?.payMethods)) setPayMethods(d.payMethods);
       })
       .catch(() => {});
   }, []);
@@ -77,7 +79,11 @@ export default function CheckoutPage() {
   const selectedOption = shipOptions.find((o) => o.key === shipMethod);
   const shippingCents = isPickup ? 0 : selectedOption?.cents ?? 0;
   const subtotal = total();
-  const feeCents = feeCentsFor(payMethod, subtotal + shippingCents);
+  const selectedPay = payMethods.find((m) => m.key === payMethod);
+  const feeCents = feeCentsForPct(
+    selectedPay?.feePct ?? 0,
+    subtotal + shippingCents
+  );
   const grandTotal = subtotal + shippingCents + feeCents;
 
   async function submit() {
@@ -315,7 +321,7 @@ export default function CheckoutPage() {
             Forma de pagamento
           </h2>
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {PAY_METHODS.map((m) => (
+            {payMethods.map((m) => (
               <label
                 key={m.key}
                 className={`flex cursor-pointer flex-col gap-0.5 rounded-xl border px-4 py-3 text-sm transition-colors ${

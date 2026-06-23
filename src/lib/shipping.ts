@@ -1,6 +1,7 @@
 import { hasSupabase } from "./env";
 import { getSupabaseAdmin } from "./supabase/server";
 import { T } from "./tables";
+import { parsePct, type PayMethod } from "./payments";
 
 /** Taxa de entrega padrão (em reais), ajustável no painel. */
 export const DELIVERY_FEE_DEFAULT = "15,00";
@@ -63,3 +64,18 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
 /** A chave de entrega escolhida é retirada no local? */
 export const isPickup = (method: string | undefined | null) =>
   method === PICKUP_KEY;
+
+/** Lê as formas de pagamento e suas taxas a partir das settings. */
+export async function getPaymentMethods(): Promise<PayMethod[]> {
+  let map = new Map<string, string>();
+  if (hasSupabase) {
+    const sb = getSupabaseAdmin();
+    const { data } = await sb.from(T.settings).select("key, value");
+    map = new Map((data ?? []).map((s) => [s.key, s.value]));
+  }
+  return [
+    { key: "pix", label: "Pix", feePct: 0, hint: "Sem taxa" },
+    { key: "debit", label: "Débito", feePct: parsePct(map.get("fee_debit_pct")) },
+    { key: "credit", label: "Crédito", feePct: parsePct(map.get("fee_credit_pct")) },
+  ];
+}

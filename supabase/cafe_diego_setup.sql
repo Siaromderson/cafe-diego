@@ -115,7 +115,9 @@ create table if not exists cafe_diego_settings (
 
 insert into cafe_diego_settings (key, value) values
   ('delivery_fee', '15,00'),
-  ('whatsapp', '5567992220619')
+  ('whatsapp', '5567992220619'),
+  ('fee_credit_pct', '0'),
+  ('fee_debit_pct', '0')
 on conflict (key) do nothing;
 
 create table if not exists cafe_diego_admins (
