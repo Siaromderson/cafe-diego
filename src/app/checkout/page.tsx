@@ -24,7 +24,8 @@ export default function CheckoutPage() {
   const [cepLoading, setCepLoading] = useState(false);
 
   const [shipOptions, setShipOptions] = useState<ShipOption[]>([]);
-  const [shipMethod, setShipMethod] = useState<string>("delivery");
+  // Padrão: retirar no local (sem custo). Entrega é a opção secundária.
+  const [shipMethod, setShipMethod] = useState<string>(PICKUP_KEY);
   const [payMethods, setPayMethods] = useState<PayMethod[]>([]);
   const [payMethod, setPayMethod] = useState<string>("pix");
 

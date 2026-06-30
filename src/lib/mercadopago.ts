@@ -57,30 +57,30 @@ const headers = (idempotencyKey?: string): Record<string, string> => ({
  * forma escolhida na loja — assim a taxa cobrada bate com o que o cliente paga.
  */
 function paymentMethodsFor(payMethod?: string) {
-  // Tipos do Mercado Pago: credit_card, debit_card, ticket, bank_transfer (Pix),
-  // account_money (saldo MP), prepaid_card, atm.
-  const ALL = [
+  // Tipos do Mercado Pago. IMPORTANTE: `account_money` (saldo MP) NÃO pode ser
+  // excluído — o MP rejeita com "account_money cannot be excluded". Por isso o
+  // saldo sempre fica disponível na tela, independente da forma escolhida.
+  const EXCLUDABLE = [
     "credit_card",
     "debit_card",
     "ticket",
     "bank_transfer",
-    "account_money",
     "prepaid_card",
     "atm",
   ];
-  /** Mantém só os tipos informados, excluindo todo o resto. */
+  /** Mantém os tipos informados (e o saldo) e exclui o resto. */
   const only = (keep: string[], installments?: number) => ({
-    excluded_payment_types: ALL.filter((id) => !keep.includes(id)).map((id) => ({
-      id,
-    })),
+    excluded_payment_types: EXCLUDABLE.filter((id) => !keep.includes(id)).map(
+      (id) => ({ id })
+    ),
     ...(installments ? { installments } : {}),
   });
   switch (payMethod) {
     case "pix":
       return only(["bank_transfer"], 1);
     case "saldo":
-      // Saldo em conta do Mercado Pago.
-      return only(["account_money"], 1);
+      // Só saldo em conta (todos os outros excluídos; account_money permanece).
+      return only([], 1);
     case "credit":
       // Crédito permite parcelar; deixamos o limite no padrão da conta.
       return only(["credit_card"]);
