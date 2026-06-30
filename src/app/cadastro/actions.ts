@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { hasSupabase } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { isValidBrazilPhone } from "@/lib/phone";
 import { T } from "@/lib/tables";
 
 export interface RegisterResult {
@@ -27,6 +28,9 @@ export async function registerCustomer(
   const email = String(formData.get("email") || "").trim().toLowerCase();
 
   if (!name) return { ok: false, error: "Informe seu nome." };
+  if (phone && !isValidBrazilPhone(phone)) {
+    return { ok: false, error: "Telefone inválido. Use DDD + número." };
+  }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return { ok: false, error: "Informe um e-mail válido." };
   }

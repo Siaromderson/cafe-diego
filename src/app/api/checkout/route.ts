@@ -11,6 +11,7 @@ import {
   getPaymentMethods,
 } from "@/lib/shipping";
 import { feeCentsForPct } from "@/lib/payments";
+import { isValidBrazilPhone } from "@/lib/phone";
 import { T } from "@/lib/tables";
 
 interface CheckoutBody {
@@ -59,6 +60,12 @@ export async function POST(req: NextRequest) {
   if (!customer?.name || !customer?.phone) {
     return NextResponse.json(
       { error: "Preencha nome e telefone." },
+      { status: 400 }
+    );
+  }
+  if (!isValidBrazilPhone(customer.phone)) {
+    return NextResponse.json(
+      { error: "Telefone inválido. Use DDD + número (ex.: 67 99999-0000)." },
       { status: 400 }
     );
   }

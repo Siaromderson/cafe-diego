@@ -6,6 +6,7 @@ import { BRL } from "@/lib/types";
 import { useCart } from "@/store/cart";
 import { BrandMark } from "@/components/BrandMark";
 import { type PayMethod, feeCentsForPct } from "@/lib/payments";
+import { isValidBrazilPhone } from "@/lib/phone";
 
 interface ShipOption {
   key: string;
@@ -96,6 +97,10 @@ export default function CheckoutPage() {
     setError(null);
     if (!form.name || !form.phone) {
       setError("Preencha nome e telefone.");
+      return;
+    }
+    if (!isValidBrazilPhone(form.phone)) {
+      setError("Telefone inválido. Use DDD + número (ex.: 67 99999-0000).");
       return;
     }
     if (!isPickup) {
@@ -191,12 +196,24 @@ export default function CheckoutPage() {
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
             />
-            <input
-              className={input}
-              placeholder="WhatsApp (DDD)"
-              value={form.phone}
-              onChange={(e) => set("phone", e.target.value)}
-            />
+            <div>
+              <input
+                className={`${input} ${
+                  form.phone && !isValidBrazilPhone(form.phone)
+                    ? "border-wine-bright/60"
+                    : ""
+                }`}
+                placeholder="WhatsApp (DDD)"
+                inputMode="tel"
+                value={form.phone}
+                onChange={(e) => set("phone", e.target.value)}
+              />
+              {form.phone && !isValidBrazilPhone(form.phone) && (
+                <span className="mt-1 block text-xs text-wine-bright/90">
+                  Número inválido — use DDD + número (ex.: 67 99999-0000).
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Forma de entrega */}
