@@ -40,8 +40,6 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({
     name: "",
     phone: "",
-    cpf: "",
-    email: "",
     cep: "",
     street: "",
     number: "",
@@ -88,8 +86,8 @@ export default function CheckoutPage() {
 
   async function submit() {
     setError(null);
-    if (!form.name || !form.phone || !form.email) {
-      setError("Preencha nome, telefone e e-mail.");
+    if (!form.name || !form.phone) {
+      setError("Preencha nome e telefone.");
       return;
     }
     if (!isPickup) {
@@ -111,8 +109,6 @@ export default function CheckoutPage() {
           customer: {
             name: form.name,
             phone: form.phone,
-            cpf: form.cpf,
-            email: form.email,
           },
           address: {
             cep: form.cep,
@@ -192,19 +188,6 @@ export default function CheckoutPage() {
               placeholder="WhatsApp (DDD)"
               value={form.phone}
               onChange={(e) => set("phone", e.target.value)}
-            />
-            <input
-              className={input}
-              placeholder="CPF"
-              value={form.cpf}
-              onChange={(e) => set("cpf", e.target.value)}
-            />
-            <input
-              className={input}
-              placeholder="E-mail"
-              type="email"
-              value={form.email}
-              onChange={(e) => set("email", e.target.value)}
             />
           </div>
 
@@ -405,7 +388,7 @@ export default function CheckoutPage() {
             {loading ? "Processando…" : "Pagar agora"}
           </button>
           <p className="mt-3 text-center text-xs text-cream/45">
-            Pagamento seguro · NuPay · Pix, débito e crédito
+            Pagamento seguro · Mercado Pago · Pix, débito e crédito
           </p>
           <Link
             href="/#produtos"

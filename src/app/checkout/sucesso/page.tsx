@@ -32,8 +32,8 @@ export default async function SuccessPage({
         </p>
         {sim && (
           <p className="mt-4 rounded-xl border border-gold/30 bg-gold/10 px-4 py-2 text-xs text-gold">
-            Modo demonstração — pagamento simulado (chaves NuPay ainda não
-            configuradas).
+            Modo demonstração — pagamento simulado (chaves do Mercado Pago
+            ainda não configuradas).
           </p>
         )}
         <Link

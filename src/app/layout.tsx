@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   title: "Café do Feirante MS — 100% Arábica",
   description:
     "O verdadeiro café de feirante. 100% Arábica, em grãos ou moído. Peça já o seu em Campo Grande - MS.",
-  icons: { icon: "/logo.png" },
+  icons: { icon: "/logo-transparent.png" },
   openGraph: {
     title: "Café do Feirante MS — 100% Arábica",
     description:

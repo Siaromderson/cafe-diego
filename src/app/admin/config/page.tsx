@@ -46,15 +46,17 @@ export default async function AdminConfig() {
       </div>
 
       <div className="flex items-center gap-2 pt-4">
-        <h2 className="font-display text-xl text-gold">Taxas de cartão</h2>
+        <h2 className="font-display text-xl text-gold">Taxas de pagamento</h2>
         <HelpButton title="Taxas repassadas ao cliente">
           <p>
-            Percentual somado ao total quando o cliente paga com cartão. O valor
-            aparece como <strong>“Taxa de pagamento”</strong> no checkout.
+            Percentual somado ao total na forma escolhida. O valor aparece como{" "}
+            <strong>“Taxa de pagamento”</strong> no checkout e é cobrado do
+            cliente.
           </p>
           <p>
-            <strong>Pix</strong> nunca tem taxa. Deixe <strong>0</strong> para
-            não cobrar de uma forma.
+            Vale para <strong>qualquer forma</strong> (inclusive Pix). O Mercado
+            Pago não envia a taxa dele automaticamente, então defina aqui o
+            quanto repassar. Deixe <strong>0</strong> para não cobrar.
           </p>
         </HelpButton>
       </div>
@@ -62,18 +64,24 @@ export default async function AdminConfig() {
         Informe o percentual (ex.: <strong>4,5</strong> para 4,5%). Deixe{" "}
         <strong>0</strong> para não cobrar taxa.
       </p>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <SettingField
-          settingKey="fee_credit_pct"
-          label="Taxa do crédito (%)"
-          hint="Ex: 4,5"
-          value={map.get("fee_credit_pct") ?? "0"}
+          settingKey="fee_pix_pct"
+          label="Taxa do Pix (%)"
+          hint="Geralmente 0"
+          value={map.get("fee_pix_pct") ?? "0"}
         />
         <SettingField
           settingKey="fee_debit_pct"
           label="Taxa do débito (%)"
           hint="Ex: 1,8"
           value={map.get("fee_debit_pct") ?? "0"}
+        />
+        <SettingField
+          settingKey="fee_credit_pct"
+          label="Taxa do crédito (%)"
+          hint="Ex: 4,5"
+          value={map.get("fee_credit_pct") ?? "0"}
         />
       </div>
     </div>

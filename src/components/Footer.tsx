@@ -1,36 +1,43 @@
 import { BrandMark } from "./BrandMark";
+import {
+  CONTENT_DEFAULTS,
+  instagramLink,
+  whatsappDisplay,
+  whatsappLink,
+  type SiteContent,
+} from "@/lib/content";
 
-export function Footer() {
+export function Footer({
+  content = CONTENT_DEFAULTS,
+}: {
+  content?: SiteContent;
+}) {
   return (
     <footer className="relative mt-24 border-t border-white/10 px-6 py-14">
       <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-3">
         <div>
           <BrandMark />
           <p className="mt-4 max-w-xs text-sm text-cream/60">
-            O verdadeiro café de feirante. 100% Arábica, torrado com cuidado
-            artesanal em Campo Grande — MS.
+            {content.footerTagline}
           </p>
         </div>
         <div>
           <h4 className="font-display text-lg text-gold">Contato</h4>
           <ul className="mt-3 space-y-2 text-sm text-cream/70">
             <li>
-              <a
-                href="https://wa.me/5567992220619"
-                className="hover:text-gold"
-              >
-                WhatsApp · 67 99222-0619
+              <a href={whatsappLink(content.whatsapp)} className="hover:text-gold">
+                WhatsApp · {whatsappDisplay(content.whatsapp)}
               </a>
             </li>
             <li>
               <a
-                href="https://instagram.com/cafedofeirantems"
+                href={instagramLink(content.contactInstagram)}
                 className="hover:text-gold"
               >
-                @cafedofeirantems
+                {content.contactInstagram}
               </a>
             </li>
-            <li>Rua Dr. Arthur Jorge 1602 · São Francisco</li>
+            <li>{content.contactAddress}</li>
           </ul>
         </div>
         <div>
@@ -42,8 +49,7 @@ export function Footer() {
         </div>
       </div>
       <div className="mx-auto mt-12 max-w-6xl border-t border-white/10 pt-6 text-center text-xs text-cream/40">
-        © {new Date().getFullYear()} Café do Feirante MS · Diego Ricardo
-        Rodrigues · Campo Grande - MS
+        © {new Date().getFullYear()} Café do Feirante MS · {content.footerCredit}
       </div>
     </footer>
   );

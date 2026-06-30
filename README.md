@@ -25,14 +25,23 @@ npm run dev                  # http://localhost:3000
 4. Preencha em `.env.local`:
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 
-## Ativar pagamento (NuPay / SpinPay)
+## Ativar pagamento (Mercado Pago)
 
-Em `.env.local`:
-- `NUPAY_BASE_URL` — `https://sandbox-api.spinpay.com.br` (teste) ou `https://api.spinpay.com.br`
-- `NUPAY_MERCHANT_KEY`, `NUPAY_MERCHANT_TOKEN`
-- `NEXT_PUBLIC_SITE_URL` — URL pública (em prod: `https://www.cafedofeirantems.com.br`)
+A loja usa o **Checkout Pro**: o cliente é redirecionado ao Mercado Pago e
+escolhe Pix, débito ou crédito. Em `.env.local`:
+- `MERCADOPAGO_ACCESS_TOKEN` — Access Token da sua aplicação
+  (painel [Mercado Pago Developers](https://www.mercadopago.com.br/developers) →
+  *Suas aplicações* → *Credenciais*). Use as de **teste** primeiro.
+- `MERCADOPAGO_WEBHOOK_SECRET` — (opcional) segredo do webhook, para validar a
+  assinatura `x-signature` das notificações.
+- `NEXT_PUBLIC_SITE_URL` — URL pública (em prod: `https://www.cafedofeirantems.com.br`).
 
-O webhook de status é `POST /api/webhooks/nupay` — configure essa URL no painel NuPay.
+O webhook de status é `POST /api/webhooks/mercadopago` — cadastre essa URL no
+painel do Mercado Pago (*Webhooks*), assinando o evento **Pagamentos**.
+
+> Se houver chaves NuPay configuradas e nenhuma do Mercado Pago, a loja usa a
+> NuPay como fallback. Sem nenhuma das duas, o checkout entra em modo
+> demonstração (pagamento simulado).
 
 ## Estrutura
 

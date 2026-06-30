@@ -3,12 +3,14 @@ import { redirect } from "next/navigation";
 import { hasSupabase } from "@/lib/env";
 import { getCurrentUser, getIsAdmin } from "@/lib/auth";
 import { BrandMark } from "@/components/BrandMark";
+import { RealtimeRefresh } from "@/components/admin/RealtimeRefresh";
 
 const NAV = [
   { href: "/admin", label: "Pedidos" },
   { href: "/admin/entregues", label: "Entregues" },
   { href: "/admin/clientes", label: "Clientes" },
   { href: "/admin/produtos", label: "Produtos" },
+  { href: "/admin/conteudo", label: "Conteúdo" },
   { href: "/admin/config", label: "Configurações" },
 ];
 
@@ -52,6 +54,7 @@ export default async function AdminLayout({
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
+      <RealtimeRefresh />
       <header className="glass-strong flex flex-col items-start justify-between gap-4 rounded-2xl px-6 py-4 sm:flex-row sm:items-center">
         <BrandMark />
         <nav className="flex flex-wrap gap-1">

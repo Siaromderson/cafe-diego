@@ -1,4 +1,17 @@
-export function Hero() {
+import {
+  CONTENT_DEFAULTS,
+  HERO_TITLE_SIZE,
+  HERO_TITLE_WEIGHT,
+  HERO_SUBTITLE_SIZE,
+  type SiteContent,
+} from "@/lib/content";
+
+export function Hero({ content = CONTENT_DEFAULTS }: { content?: SiteContent }) {
+  const titleSize = HERO_TITLE_SIZE[content.heroTitleSize] ?? HERO_TITLE_SIZE.lg;
+  const titleWeight =
+    HERO_TITLE_WEIGHT[content.heroTitleWeight] ?? HERO_TITLE_WEIGHT.semibold;
+  const subtitleSize =
+    HERO_SUBTITLE_SIZE[content.heroSubtitleSize] ?? HERO_SUBTITLE_SIZE.md;
   return (
     <section className="relative overflow-hidden pt-40 pb-24 sm:pt-48">
       {/* vapor / glow */}
@@ -8,31 +21,29 @@ export function Hero() {
       <div className="relative mx-auto max-w-5xl px-6 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/logo.png"
+          src="/logo-transparent.png"
           alt="Café do Feirante MS"
           className="animate-float-up mx-auto mb-4 h-44 w-auto drop-shadow-[0_10px_40px_rgba(160,30,30,0.35)] sm:h-60"
         />
         <p className="animate-float-up mb-5 inline-flex items-center gap-2 rounded-full border border-gold/25 bg-white/5 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.3em] text-gold backdrop-blur">
           <span className="h-1.5 w-1.5 rounded-full bg-gold" />
-          100% Arábica · Torra Especial
+          {content.heroBadge}
         </p>
 
         <h1
-          className="animate-float-up font-display text-5xl font-semibold leading-[1.05] tracking-tight sm:text-7xl"
+          className={`animate-float-up font-display ${titleSize} ${titleWeight} leading-[1.05] tracking-tight`}
           style={{ animationDelay: "80ms" }}
         >
-          O verdadeiro
+          {content.heroTitleTop}
           <br />
-          <span className="gold-text">café de feirante</span>
+          <span className="gold-text">{content.heroTitleHighlight}</span>
         </h1>
 
         <p
-          className="animate-float-up mx-auto mt-6 max-w-xl text-base text-cream/70 sm:text-lg"
+          className={`animate-float-up mx-auto mt-6 max-w-xl text-cream/70 ${subtitleSize}`}
           style={{ animationDelay: "160ms" }}
         >
-          Selecionado grão a grão e torrado com cuidado artesanal. Em grãos para
-          moer na hora ou tradicional moído. Direto do feirante para a sua xícara,
-          em Campo Grande — MS.
+          {content.heroSubtitle}
         </p>
 
         <div
@@ -43,13 +54,13 @@ export function Hero() {
             href="#produtos"
             className="btn-gold rounded-full px-8 py-3.5 text-sm uppercase tracking-wide"
           >
-            Peça já o seu
+            {content.heroCtaPrimary}
           </a>
           <a
             href="#entrega"
             className="btn-ghost rounded-full px-8 py-3.5 text-sm uppercase tracking-wide"
           >
-            Entrega grátis em CG
+            {content.heroCtaSecondary}
           </a>
         </div>
 

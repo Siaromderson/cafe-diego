@@ -99,4 +99,6 @@ export async function saveSetting(key: string, value: string) {
   const sb = await guard();
   await sb.from(T.settings).upsert({ key, value });
   revalidatePath("/admin/config");
+  revalidatePath("/admin/conteudo");
+  revalidatePath("/"); // textos/contatos aparecem na loja
 }

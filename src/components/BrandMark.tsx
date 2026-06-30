@@ -10,7 +10,7 @@ export function BrandMark({
     <span className={`inline-flex items-center ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/logo.png"
+        src="/logo-transparent.png"
         alt="Café do Feirante MS"
         className={`${h} w-auto select-none drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]`}
         draggable={false}

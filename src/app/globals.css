@@ -2,9 +2,9 @@
 
 :root {
   /* Paleta da marca — xícara vermelha + "MS" âmbar + creme da logo */
-  --espresso: #0d0805;
-  --coffee: #1a0f08;
-  --coffee-2: #2a1810;
+  --espresso: #1c1008;
+  --coffee: #24140b;
+  --coffee-2: #341e11;
   --crema: #c9a96a;
   --gold: #e7c987;
   --gold-soft: #d9b777;
@@ -47,9 +47,9 @@ html {
 
 body {
   background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(217, 138, 61, 0.12), transparent 60%),
-    radial-gradient(900px 500px at 0% 20%, rgba(207, 43, 34, 0.14), transparent 55%),
-    linear-gradient(180deg, #0d0805 0%, #160c06 45%, #0d0805 100%);
+    radial-gradient(1200px 600px at 80% -10%, rgba(217, 138, 61, 0.16), transparent 60%),
+    radial-gradient(900px 500px at 0% 20%, rgba(207, 43, 34, 0.15), transparent 55%),
+    linear-gradient(180deg, #20130a 0%, #2c1a10 45%, #1c1008 100%);
   background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-body), system-ui, sans-serif;
@@ -189,7 +189,7 @@ body {
 }
 
 ::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-track { background: #0d0805; }
+::-webkit-scrollbar-track { background: #1c1008; }
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(#cf2b22, #2a1810);
   border-radius: 8px;

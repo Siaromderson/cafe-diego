@@ -4,15 +4,16 @@ import { ProductCard } from "@/components/ProductCard";
 import { CartDrawer } from "@/components/CartDrawer";
 import { Footer } from "@/components/Footer";
 import { getProducts } from "@/lib/products-repo";
+import { getContent } from "@/lib/content";
 
 export default async function Home() {
-  const products = await getProducts();
+  const [products, content] = await Promise.all([getProducts(), getContent()]);
 
   return (
     <main className="relative">
       <Navbar />
       <CartDrawer />
-      <Hero />
+      <Hero content={content} />
 
       {/* Produtos */}
       <section id="produtos" className="mx-auto max-w-6xl px-6 py-20">
@@ -38,19 +39,16 @@ export default async function Home() {
           <div className="grid items-center gap-10 sm:grid-cols-2">
             <div>
               <p className="text-xs uppercase tracking-[0.4em] text-gold/80">
-                A história
+                {content.historiaKicker}
               </p>
               <h2 className="font-display mt-2 text-3xl font-semibold sm:text-4xl">
-                Do grão escolhido à sua xícara
+                {content.historiaTitle}
               </h2>
-              <p className="mt-4 text-cream/70">
-                O Café do Feirante nasceu na lida das feiras de Campo Grande,
-                levando café de verdade para quem entende. Trabalhamos só com
-                100% Arábica, em torra média que respeita o grão — encorpado,
-                aromático e com aquela doçura natural.
+              <p className="mt-4 whitespace-pre-line text-cream/70">
+                {content.historiaP1}
               </p>
-              <p className="mt-3 text-cream/70">
-                Quem prova, leva. E quem leva, volta.
+              <p className="mt-3 whitespace-pre-line text-cream/70">
+                {content.historiaP2}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -112,7 +110,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <Footer />
+      <Footer content={content} />
     </main>
   );
 }

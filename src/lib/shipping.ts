@@ -73,8 +73,17 @@ export async function getPaymentMethods(): Promise<PayMethod[]> {
     const { data } = await sb.from(T.settings).select("key, value");
     map = new Map((data ?? []).map((s) => [s.key, s.value]));
   }
+  // Qualquer forma pode ter taxa repassada ao cliente — todas configuráveis
+  // no painel. O Mercado Pago não informa a taxa dele aqui, então o valor
+  // cobrado segue o percentual definido em Configurações (0 = sem taxa).
+  const pixPct = parsePct(map.get("fee_pix_pct"));
   return [
-    { key: "pix", label: "Pix", feePct: 0, hint: "Sem taxa" },
+    {
+      key: "pix",
+      label: "Pix",
+      feePct: pixPct,
+      hint: pixPct > 0 ? undefined : "Sem taxa",
+    },
     { key: "debit", label: "Débito", feePct: parsePct(map.get("fee_debit_pct")) },
     { key: "credit", label: "Crédito", feePct: parsePct(map.get("fee_credit_pct")) },
   ];

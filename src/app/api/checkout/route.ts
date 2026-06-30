@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasSupabase, hasNupay, env } from "@/lib/env";
+import { hasSupabase, hasNupay, hasMercadoPago, env } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { getProducts } from "@/lib/products-repo";
 import { createNupayPayment } from "@/lib/nupay";
+import { createMercadoPagoPreference } from "@/lib/mercadopago";
 import {
   getShippingConfig,
   isPickup,
@@ -13,7 +14,7 @@ import { feeCentsForPct } from "@/lib/payments";
 import { T } from "@/lib/tables";
 
 interface CheckoutBody {
-  customer: { name: string; phone: string; cpf: string; email: string };
+  customer: { name: string; phone: string; cpf?: string; email?: string };
   address: {
     cep: string;
     street: string;
@@ -38,9 +39,12 @@ export async function POST(req: NextRequest) {
 
   const { customer, address, items, shippingMethod, paymentMethod } = body;
   const pickup = isPickup(shippingMethod);
-  if (!customer?.name || !customer?.phone || !customer?.email) {
+  // E-mail e CPF não são mais pedidos no checkout — ficam opcionais.
+  const customerEmail = customer?.email?.trim() || "";
+  const customerCpf = customer?.cpf?.trim() || "";
+  if (!customer?.name || !customer?.phone) {
     return NextResponse.json(
-      { error: "Preencha nome, telefone e e-mail." },
+      { error: "Preencha nome e telefone." },
       { status: 400 }
     );
   }
@@ -109,30 +113,33 @@ export async function POST(req: NextRequest) {
   if (hasSupabase) {
     const sb = getSupabaseAdmin();
 
-    // tenta vincular/criar a conta do cliente (não bloqueia a venda se falhar)
+    // tenta vincular/criar a conta do cliente (não bloqueia a venda se falhar).
+    // Sem e-mail (campo removido do checkout) o pedido segue como avulso.
     let customerId: string | null = null;
-    try {
-      const { data: created } = await sb.auth.admin.createUser({
-        email: customer.email,
-        email_confirm: true,
-        user_metadata: { name: customer.name },
-      });
-      customerId = created?.user?.id ?? null;
-      if (customerId) {
-        await sb.from(T.customers).upsert({
-          id: customerId,
-          name: customer.name,
-          phone: customer.phone,
-          cpf: customer.cpf,
-          email: customer.email,
+    if (customerEmail) {
+      try {
+        const { data: created } = await sb.auth.admin.createUser({
+          email: customerEmail,
+          email_confirm: true,
+          user_metadata: { name: customer.name },
         });
-        await sb.from(T.addresses).insert({
-          customer_id: customerId,
-          ...address,
-        });
+        customerId = created?.user?.id ?? null;
+        if (customerId) {
+          await sb.from(T.customers).upsert({
+            id: customerId,
+            name: customer.name,
+            phone: customer.phone,
+            cpf: customerCpf,
+            email: customerEmail,
+          });
+          await sb.from(T.addresses).insert({
+            customer_id: customerId,
+            ...address,
+          });
+        }
+      } catch {
+        // usuário já existe ou auth indisponível — segue com snapshot
       }
-    } catch {
-      // usuário já existe ou auth indisponível — segue com snapshot
     }
 
     const { data: order, error } = await sb
@@ -146,8 +153,8 @@ export async function POST(req: NextRequest) {
         reference_id: referenceId,
         customer_name: customer.name,
         customer_phone: customer.phone,
-        customer_cpf: customer.cpf,
-        customer_email: customer.email,
+        customer_cpf: customerCpf,
+        customer_email: customerEmail,
         address_json: address,
         delivery_eta: eta.toISOString().slice(0, 10),
       })
@@ -174,8 +181,80 @@ export async function POST(req: NextRequest) {
   }
 
   // ---- Pagamento ----
+  // Itens enviados ao provedor (produtos + frete + taxa), em reais.
+  const paymentItems = [
+    ...lines.map((l) => ({
+      id: l.product.id,
+      name: l.product.name,
+      quantity: l.qty,
+      unitAmount: l.product.price_cents / 100,
+    })),
+    ...(shippingCents > 0
+      ? [
+          {
+            id: "frete",
+            name: `Frete (${shippingLabel})`,
+            quantity: 1,
+            unitAmount: shippingCents / 100,
+          },
+        ]
+      : []),
+    ...(feeCents > 0
+      ? [
+          {
+            id: "taxa",
+            name: `Taxa (${payLabel})`,
+            quantity: 1,
+            unitAmount: feeCents / 100,
+          },
+        ]
+      : []),
+  ];
+
+  // 1) Mercado Pago (preferencial quando o Access Token está configurado).
+  if (hasMercadoPago) {
+    try {
+      const preference = await createMercadoPagoPreference({
+        referenceId,
+        payMethod: chosenPay.key,
+        payer: {
+          name: customer.name,
+          email: customerEmail,
+          phone: customer.phone,
+          document: customerCpf,
+        },
+        items: paymentItems.map((i) => ({
+          id: i.id,
+          title: i.name,
+          quantity: i.quantity,
+          unitAmount: i.unitAmount,
+        })),
+      });
+
+      if (hasSupabase && preference.preferenceId) {
+        await getSupabaseAdmin()
+          .from(T.orders)
+          .update({
+            payment_ref: preference.preferenceId,
+            payment_url: preference.paymentUrl,
+          })
+          .eq("id", orderId);
+      }
+
+      return NextResponse.json({
+        orderId,
+        paymentUrl: preference.paymentUrl,
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Falha no pagamento." },
+        { status: 502 }
+      );
+    }
+  }
+
+  // 2) Sem provedor configurado: simula o redirect para testar o fluxo.
   if (!hasNupay) {
-    // Sem chaves NuPay ainda: simula o redirect para testar o fluxo ponta a ponta.
     return NextResponse.json({
       orderId,
       simulated: true,
@@ -183,6 +262,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // 3) NuPay (fallback).
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
     const payment = await createNupayPayment({
@@ -191,8 +271,8 @@ export async function POST(req: NextRequest) {
       amount: totalCents / 100,
       shopper: {
         name: customer.name,
-        document: customer.cpf,
-        email: customer.email,
+        document: customerCpf,
+        email: customerEmail,
         phone: customer.phone,
         ip,
       },
