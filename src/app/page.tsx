@@ -53,7 +53,7 @@ export default async function Home() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { k: "Seleção", v: "grão a grão" },
+                { k: "Seleção", v: "grão a laser" },
                 { k: "Torra", v: "média artesanal" },
                 { k: "Moagem", v: "na hora certa" },
                 { k: "Origem", v: "Oeste Paulista" },

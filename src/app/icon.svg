@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2c1a10"/>
+      <stop offset="1" stop-color="#1c1008"/>
+    </linearGradient>
+    <linearGradient id="cup" x1="20" y1="55" x2="100" y2="95" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e23b2c"/>
+      <stop offset="0.55" stop-color="#a01e1e"/>
+      <stop offset="1" stop-color="#6e1414"/>
+    </linearGradient>
+    <linearGradient id="steam" x1="60" y1="6" x2="60" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d98a3d"/>
+      <stop offset="1" stop-color="#a01e1e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- tile café -->
+  <rect x="2" y="2" width="116" height="116" rx="26" fill="url(#tile)" stroke="#e7c987" stroke-opacity="0.25" stroke-width="2"/>
+
+  <!-- vapor -->
+  <path d="M58 50c-5-7 4-12 4-19 0-5-6-7-3-13 2-4 8-4 9-9 1-4-3-6-1-9"
+        stroke="url(#steam)" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+  <path d="M72 48c-3-5 3-9 3-14" stroke="url(#steam)" stroke-width="3"
+        stroke-linecap="round" fill="none" opacity="0.7"/>
+
+  <!-- xícara -->
+  <path d="M26 56h56c0 17-12 27-28 27S26 73 26 56Z" fill="url(#cup)"/>
+  <path d="M54 60c4 6 4 13 0 19" stroke="#7a1212" stroke-width="2.4"
+        stroke-linecap="round" fill="none" opacity="0.65"/>
+  <ellipse cx="54" cy="56" rx="28" ry="4.4" fill="#e23b3b" opacity="0.55"/>
+
+  <!-- alça -->
+  <path d="M82 60c10-2 16 3 14 11-2 7-10 9-16 7"
+        stroke="url(#cup)" stroke-width="6" stroke-linecap="round" fill="none"/>
+
+  <!-- pires -->
+  <path d="M22 90h64" stroke="#e7c987" stroke-width="4" stroke-linecap="round" stroke-opacity="0.85"/>
+  <path d="M30 90c0 6 10 9 24 9s24-3 24-9" stroke="#7a1212" stroke-width="3"
+        stroke-linecap="round" fill="none" opacity="0.5"/>
+</svg>
