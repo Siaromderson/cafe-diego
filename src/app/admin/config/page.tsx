@@ -2,6 +2,8 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import { T } from "@/lib/tables";
 import { SettingField } from "@/components/admin/SettingField";
 import { HelpButton } from "@/components/admin/HelpButton";
+import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { clearAllOrders } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +85,46 @@ export default async function AdminConfig() {
           hint="Ex: 4,5"
           value={map.get("fee_credit_pct") ?? "0"}
         />
+      </div>
+
+      <div className="flex items-center gap-2 pt-6">
+        <h2 className="font-display text-xl text-wine-bright">Zona de perigo</h2>
+        <HelpButton title="Cuidado: ações que apagam dados">
+          <p>
+            <strong>Limpar todos os pedidos</strong> apaga toda a lista de
+            pedidos (ativos e entregues) para você começar do zero — útil depois
+            das simulações de teste.
+          </p>
+          <p>
+            Os <strong>produtos</strong> e os <strong>cadastros de clientes</strong>{" "}
+            não são apagados. Sempre pede confirmação antes.
+          </p>
+        </HelpButton>
+      </div>
+      <div className="rounded-2xl border border-wine-bright/25 bg-wine-bright/5 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="font-medium text-cream">Limpar todos os pedidos</p>
+            <p className="mt-1 text-sm text-cream/60">
+              Apaga todos os pedidos e itens (inclusive os de teste). Não desfaz.
+            </p>
+          </div>
+          <ConfirmButton
+            label="Limpar pedidos"
+            className="btn-red rounded-full px-6 py-2.5 text-sm"
+            title="Apagar TODOS os pedidos?"
+            message={
+              <>
+                Isso apaga <strong>todos os pedidos e itens</strong> da loja, de
+                uma vez. Produtos e clientes ficam. <strong>Não dá pra
+                desfazer.</strong>
+              </>
+            }
+            confirmLabel="Apagar tudo"
+            danger
+            action={clearAllOrders}
+          />
+        </div>
       </div>
     </div>
   );

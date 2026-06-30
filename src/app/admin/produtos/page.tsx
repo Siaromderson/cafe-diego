@@ -37,6 +37,10 @@ export default async function AdminProducts() {
                 <strong>Produto ativo:</strong> desmarque para esconder da loja
                 sem apagar.
               </li>
+              <li>
+                <strong>Ordem na loja:</strong> use as setas ↑ ↓ ao lado de cada
+                produto para mudar a posição na página.
+              </li>
             </ul>
           </HelpButton>
         </div>
@@ -44,8 +48,13 @@ export default async function AdminProducts() {
       </div>
 
       <section className="space-y-3">
-        {products.map((p) => (
-          <ProductForm key={p.id} product={p} />
+        {products.map((p, i) => (
+          <ProductForm
+            key={p.id}
+            product={p}
+            index={i}
+            total={products.length}
+          />
         ))}
       </section>
 

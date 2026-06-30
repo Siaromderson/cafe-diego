@@ -75,28 +75,29 @@ export default async function Home() {
       <section id="entrega" className="mx-auto max-w-6xl px-6 py-20">
         <header className="mb-12 text-center">
           <p className="text-xs uppercase tracking-[0.4em] text-gold/80">
-            Como funciona
+            {content.entregaKicker}
           </p>
           <h2 className="font-display mt-2 text-4xl font-semibold sm:text-5xl">
-            Peça e <span className="gold-text">receba em casa</span>
+            {content.entregaTitleTop}{" "}
+            <span className="gold-text">{content.entregaTitleHighlight}</span>
           </h2>
         </header>
         <div className="grid gap-6 sm:grid-cols-3">
           {[
             {
               n: "01",
-              t: "Escolha seu café",
-              d: "Em grãos ou moído. Adicione ao carrinho e finalize em segundos.",
+              t: content.entregaStep1Title,
+              d: content.entregaStep1Desc,
             },
             {
               n: "02",
-              t: "Pague com segurança",
-              d: "Pix, débito ou crédito no checkout. Você cadastra o endereço na hora.",
+              t: content.entregaStep2Title,
+              d: content.entregaStep2Desc,
             },
             {
               n: "03",
-              t: "Receba em até 2 dias",
-              d: "Entrega grátis em Campo Grande. A gente leva até a sua porta.",
+              t: content.entregaStep3Title,
+              d: content.entregaStep3Desc,
             },
           ].map((s) => (
             <div key={s.n} className="glass rounded-3xl p-7">

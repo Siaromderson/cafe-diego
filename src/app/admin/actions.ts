@@ -42,6 +42,33 @@ export async function setOrderStatus(id: string, status: string) {
   revalidatePath("/admin/clientes");
 }
 
+/** Marca um pedido como cancelado (sai da lista de ativos, mas fica no histórico). */
+export async function cancelOrder(id: string) {
+  return setOrderStatus(id, "canceled");
+}
+
+/** Apaga um pedido em definitivo (itens + pedido). */
+export async function deleteOrder(id: string) {
+  const sb = await guard();
+  await sb.from(T.orderItems).delete().eq("order_id", id);
+  await sb.from(T.orders).delete().eq("id", id);
+  revalidatePath("/admin");
+  revalidatePath("/admin/entregues");
+  revalidatePath("/admin/clientes");
+}
+
+/** Apaga TODOS os pedidos (itens + pedidos). Não mexe nos cadastros de clientes. */
+export async function clearAllOrders() {
+  const sb = await guard();
+  // Apaga todos os itens e depois todos os pedidos. O filtro "not null" no id
+  // garante que a operação atinge todas as linhas.
+  await sb.from(T.orderItems).delete().not("id", "is", null);
+  await sb.from(T.orders).delete().not("id", "is", null);
+  revalidatePath("/admin");
+  revalidatePath("/admin/entregues");
+  revalidatePath("/admin/clientes");
+}
+
 export async function saveProduct(formData: FormData) {
   const sb = await guard();
   const id = formData.get("id") as string | null;
@@ -91,6 +118,32 @@ export async function saveProduct(formData: FormData) {
 export async function deleteProduct(id: string) {
   const sb = await guard();
   await sb.from(T.products).delete().eq("id", id);
+  revalidatePath("/admin/produtos");
+  revalidatePath("/");
+}
+
+/** Sobe/desce um produto na ordem da loja, trocando o "sort" com o vizinho. */
+export async function moveProduct(id: string, dir: "up" | "down") {
+  const sb = await guard();
+  const { data } = await sb
+    .from(T.products)
+    .select("id, sort")
+    .order("sort", { ascending: true });
+  const list = (data ?? []) as { id: string; sort: number | null }[];
+  const i = list.findIndex((p) => p.id === id);
+  if (i === -1) return;
+  const j = dir === "up" ? i - 1 : i + 1;
+  if (j < 0 || j >= list.length) return;
+
+  // Troca de posição e renumera todos (0..n-1) — resolve empates/sort repetido.
+  [list[i], list[j]] = [list[j], list[i]];
+  await Promise.all(
+    list.map((p, idx) =>
+      p.sort === idx
+        ? Promise.resolve()
+        : sb.from(T.products).update({ sort: idx }).eq("id", p.id)
+    )
+  );
   revalidatePath("/admin/produtos");
   revalidatePath("/");
 }

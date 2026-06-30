@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Café do Feirante MS — 100% Arábica",
     description:
-      "O verdadeiro café de feirante. 100% Arábica, em grãos ou moído. Entrega grátis em Campo Grande - MS.",
+      "O verdadeiro café de feirante. 100% Arábica, em grãos ou moído. Entrega em até 24h em Campo Grande - MS.",
     images: ["/logo.jpg"],
     type: "website",
   },

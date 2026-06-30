@@ -11,11 +11,29 @@ export interface SiteContent {
   heroSubtitle: string;
   heroCtaPrimary: string;
   heroCtaSecondary: string;
+  // Três caixas de números do topo
+  heroStat1Top: string;
+  heroStat1Bottom: string;
+  heroStat2Top: string;
+  heroStat2Bottom: string;
+  heroStat3Top: string;
+  heroStat3Bottom: string;
   historiaKicker: string;
   historiaTitle: string;
   historiaP1: string;
   historiaP2: string;
+  // Seção "Entrega"
+  entregaKicker: string;
+  entregaTitleTop: string;
+  entregaTitleHighlight: string;
+  entregaStep1Title: string;
+  entregaStep1Desc: string;
+  entregaStep2Title: string;
+  entregaStep2Desc: string;
+  entregaStep3Title: string;
+  entregaStep3Desc: string;
   footerTagline: string;
+  footerDelivery: string; // frase de entrega no rodapé
   contactInstagram: string;
   contactAddress: string;
   footerCredit: string;
@@ -33,14 +51,34 @@ export const CONTENT_DEFAULTS: SiteContent = {
   heroSubtitle:
     "Selecionado grão a grão e torrado com cuidado artesanal. Em grãos para moer na hora ou tradicional moído. Direto do feirante para a sua xícara, em Campo Grande — MS.",
   heroCtaPrimary: "Peça já o seu",
-  heroCtaSecondary: "Entrega grátis em CG",
+  heroCtaSecondary: "Como funciona a entrega",
+  heroStat1Top: "100%",
+  heroStat1Bottom: "Arábica",
+  heroStat2Top: "Grão ou",
+  heroStat2Bottom: "Moído",
+  heroStat3Top: "24h",
+  heroStat3Bottom: "Entrega CG",
   historiaKicker: "A história",
   historiaTitle: "Do grão escolhido à sua xícara",
   historiaP1:
     "O Café do Feirante nasceu na lida das feiras de Campo Grande, levando café de verdade para quem entende. Trabalhamos só com 100% Arábica, em torra média que respeita o grão — encorpado, aromático e com aquela doçura natural.",
   historiaP2: "Quem prova, leva. E quem leva, volta.",
+  entregaKicker: "Como funciona",
+  entregaTitleTop: "Peça e",
+  entregaTitleHighlight: "receba em casa",
+  entregaStep1Title: "Escolha seu café",
+  entregaStep1Desc:
+    "Em grãos ou moído. Adicione ao carrinho e finalize em segundos.",
+  entregaStep2Title: "Pague com segurança",
+  entregaStep2Desc:
+    "Pix, débito ou crédito no checkout. Você cadastra o endereço na hora.",
+  entregaStep3Title: "Receba em até 24h",
+  entregaStep3Desc:
+    "Entrega em Campo Grande por R$ 15 — ou retire no local sem custo. A gente leva até a sua porta.",
   footerTagline:
     "O verdadeiro café de feirante. 100% Arábica, torrado com cuidado artesanal em Campo Grande — MS.",
+  footerDelivery:
+    "Entrega em Campo Grande por R$ 15 (em até 24h) ou retire no local sem custo. Pague no Pix, débito ou crédito.",
   contactInstagram: "@cafedofeirantems",
   contactAddress: "Rua Dr. Arthur Jorge 1602 · São Francisco",
   footerCredit: "Diego Ricardo Rodrigues · Campo Grande - MS",
@@ -75,11 +113,27 @@ export const KEYS: Record<string, keyof SiteContent> = {
   content_hero_subtitle: "heroSubtitle",
   content_hero_cta_primary: "heroCtaPrimary",
   content_hero_cta_secondary: "heroCtaSecondary",
+  content_hero_stat1_top: "heroStat1Top",
+  content_hero_stat1_bottom: "heroStat1Bottom",
+  content_hero_stat2_top: "heroStat2Top",
+  content_hero_stat2_bottom: "heroStat2Bottom",
+  content_hero_stat3_top: "heroStat3Top",
+  content_hero_stat3_bottom: "heroStat3Bottom",
   content_historia_kicker: "historiaKicker",
   content_historia_title: "historiaTitle",
   content_historia_p1: "historiaP1",
   content_historia_p2: "historiaP2",
+  content_entrega_kicker: "entregaKicker",
+  content_entrega_title_top: "entregaTitleTop",
+  content_entrega_title_highlight: "entregaTitleHighlight",
+  content_entrega_step1_title: "entregaStep1Title",
+  content_entrega_step1_desc: "entregaStep1Desc",
+  content_entrega_step2_title: "entregaStep2Title",
+  content_entrega_step2_desc: "entregaStep2Desc",
+  content_entrega_step3_title: "entregaStep3Title",
+  content_entrega_step3_desc: "entregaStep3Desc",
   content_footer_tagline: "footerTagline",
+  content_footer_delivery: "footerDelivery",
   content_contact_instagram: "contactInstagram",
   content_contact_address: "contactAddress",
   content_footer_credit: "footerCredit",
@@ -151,6 +205,24 @@ export const CONTENT_GROUPS: ContentGroupDef[] = [
         kind: "multiline",
       },
       {
+        key: "content_hero_stat1_top",
+        label: "Caixa 1 — número",
+        hint: "Ex: 100%",
+      },
+      { key: "content_hero_stat1_bottom", label: "Caixa 1 — texto" },
+      {
+        key: "content_hero_stat2_top",
+        label: "Caixa 2 — número",
+        hint: "Ex: Grão ou",
+      },
+      { key: "content_hero_stat2_bottom", label: "Caixa 2 — texto" },
+      {
+        key: "content_hero_stat3_top",
+        label: "Caixa 3 — número",
+        hint: "Ex: 24h",
+      },
+      { key: "content_hero_stat3_bottom", label: "Caixa 3 — texto" },
+      {
         key: "content_hero_title_size",
         label: "Tamanho do título",
         kind: "select",
@@ -192,11 +264,45 @@ export const CONTENT_GROUPS: ContentGroupDef[] = [
     ],
   },
   {
+    title: "Seção “Entrega”",
+    fields: [
+      { key: "content_entrega_kicker", label: "Etiqueta (linha pequena)" },
+      { key: "content_entrega_title_top", label: "Título — 1ª parte" },
+      {
+        key: "content_entrega_title_highlight",
+        label: "Título — destaque dourado",
+      },
+      { key: "content_entrega_step1_title", label: "Passo 1 — título" },
+      {
+        key: "content_entrega_step1_desc",
+        label: "Passo 1 — descrição",
+        kind: "multiline",
+      },
+      { key: "content_entrega_step2_title", label: "Passo 2 — título" },
+      {
+        key: "content_entrega_step2_desc",
+        label: "Passo 2 — descrição",
+        kind: "multiline",
+      },
+      { key: "content_entrega_step3_title", label: "Passo 3 — título" },
+      {
+        key: "content_entrega_step3_desc",
+        label: "Passo 3 — descrição",
+        kind: "multiline",
+      },
+    ],
+  },
+  {
     title: "Rodapé e contatos",
     fields: [
       {
         key: "content_footer_tagline",
         label: "Frase do rodapé",
+        kind: "multiline",
+      },
+      {
+        key: "content_footer_delivery",
+        label: "Frase de entrega (rodapé)",
         kind: "multiline",
       },
       {

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   instagramLink,
   whatsappDisplay,
@@ -26,40 +25,35 @@ const S_SIZE: Record<string, string> = {
 
 /**
  * Miniatura ao vivo do site, refletindo o conteúdo em edição no painel.
- * Não é interativa — é só uma prévia visual de como vai ficar.
+ * Componente puramente visual (sem estado): quem decide se ela aparece é o
+ * `ContentEditor` (painel fixo no desktop, folha deslizante no celular).
  */
 export function SitePreview({ content }: { content: SiteContent }) {
-  // No celular começa recolhida (barra no rodapé); no desktop o `lg:block`
-  // do corpo força a prévia sempre visível no painel lateral.
-  const [open, setOpen] = useState(false);
   const titleSize = T_SIZE[content.heroTitleSize] ?? T_SIZE.lg;
   const titleWeight = T_WEIGHT[content.heroTitleWeight] ?? T_WEIGHT.semibold;
   const subSize = S_SIZE[content.heroSubtitleSize] ?? S_SIZE.md;
 
+  const stats = [
+    { k: content.heroStat1Top, v: content.heroStat1Bottom },
+    { k: content.heroStat2Top, v: content.heroStat2Bottom },
+    { k: content.heroStat3Top, v: content.heroStat3Bottom },
+  ];
+
   return (
     <div className="overflow-hidden rounded-2xl border border-white/12 bg-black/40 shadow-[0_14px_40px_rgba(0,0,0,0.55)] backdrop-blur-sm">
       {/* barra do "navegador" */}
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-1.5 border-b border-white/10 bg-white/5 px-3 py-2 text-left"
-      >
+      <div className="flex w-full items-center gap-1.5 border-b border-white/10 bg-white/5 px-3 py-2">
         <span className="h-2 w-2 rounded-full bg-wine-bright/80" />
         <span className="h-2 w-2 rounded-full bg-amber/70" />
         <span className="h-2 w-2 rounded-full bg-gold/60" />
         <span className="ml-2 text-[10px] uppercase tracking-widest text-cream/40">
           Prévia da loja
         </span>
-        <span className="ml-auto text-xs text-cream/50 lg:hidden">
-          {open ? "ocultar ▾" : "ver ▴"}
-        </span>
-      </button>
+      </div>
 
       {/* página em miniatura */}
       <div
-        className={`${
-          open ? "block" : "hidden"
-        } max-h-[44vh] overflow-y-auto px-4 py-5 text-center lg:block lg:max-h-[calc(100vh-9rem)]`}
+        className="max-h-[60vh] overflow-y-auto px-4 py-5 text-center lg:max-h-[calc(100vh-9rem)]"
         style={{
           background:
             "radial-gradient(420px 220px at 80% -10%, rgba(217,138,61,0.16), transparent 60%), linear-gradient(180deg, #20130a 0%, #2c1a10 45%, #1c1008 100%)",
@@ -95,6 +89,23 @@ export function SitePreview({ content }: { content: SiteContent }) {
           </span>
         </div>
 
+        {/* Números do topo */}
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {stats.map((s, i) => (
+            <div
+              key={i}
+              className="rounded-lg border border-white/10 bg-white/5 px-1 py-2"
+            >
+              <div className="font-display text-xs font-semibold gold-text">
+                {s.k}
+              </div>
+              <div className="text-[7px] uppercase tracking-widest text-cream/55">
+                {s.v}
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* História */}
         <div className="glass mt-6 rounded-xl p-3 text-left">
           <p className="text-[8px] uppercase tracking-[0.3em] text-gold/80">
@@ -108,9 +119,43 @@ export function SitePreview({ content }: { content: SiteContent }) {
           </p>
         </div>
 
+        {/* Entrega */}
+        <div className="mt-6 text-left">
+          <p className="text-center text-[8px] uppercase tracking-[0.3em] text-gold/80">
+            {content.entregaKicker}
+          </p>
+          <h2 className="font-display mt-1 text-center text-sm text-cream">
+            {content.entregaTitleTop}{" "}
+            <span className="gold-text">{content.entregaTitleHighlight}</span>
+          </h2>
+          <div className="mt-2 grid grid-cols-3 gap-1.5">
+            {[
+              { t: content.entregaStep1Title, d: content.entregaStep1Desc },
+              { t: content.entregaStep2Title, d: content.entregaStep2Desc },
+              { t: content.entregaStep3Title, d: content.entregaStep3Desc },
+            ].map((s, i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-white/10 bg-white/5 p-1.5"
+              >
+                <div className="font-display text-[10px] font-semibold text-gold/40">
+                  0{i + 1}
+                </div>
+                <p className="text-[8px] font-medium text-cream">{s.t}</p>
+                <p className="mt-0.5 line-clamp-3 text-[7px] text-cream/60">
+                  {s.d}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Rodapé */}
         <div className="mt-6 border-t border-white/10 pt-3 text-left">
           <p className="text-[10px] text-cream/60">{content.footerTagline}</p>
+          <p className="mt-1 text-[9px] text-cream/50">
+            {content.footerDelivery}
+          </p>
           <ul className="mt-2 space-y-0.5 text-[10px] text-cream/70">
             <li className="text-gold/90">
               WhatsApp · {whatsappDisplay(content.whatsapp)}
@@ -125,8 +170,7 @@ export function SitePreview({ content }: { content: SiteContent }) {
             <li className="text-cream/60">{content.contactAddress}</li>
           </ul>
           <p className="mt-2 text-[9px] text-cream/40">
-            © {new Date().getFullYear()} Café do Feirante MS ·{" "}
-            {content.footerCredit}
+            © Café do Feirante MS · {content.footerCredit}
           </p>
         </div>
       </div>

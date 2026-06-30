@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BrandMark } from "./BrandMark";
 import {
   CONTENT_DEFAULTS,
@@ -42,10 +43,13 @@ export function Footer({
         </div>
         <div>
           <h4 className="font-display text-lg text-gold">Entrega</h4>
-          <p className="mt-3 text-sm text-cream/70">
-            Entrega grátis em Campo Grande, prazo de até 2 dias úteis. Retire na
-            feira ou peça pelo site e pague no Pix, débito ou crédito.
-          </p>
+          <p className="mt-3 text-sm text-cream/70">{content.footerDelivery}</p>
+          <Link
+            href="/cadastro"
+            className="mt-4 inline-block text-sm font-medium text-gold hover:text-amber"
+          >
+            Cadastre-se para novidades →
+          </Link>
         </div>
       </div>
       <div className="mx-auto mt-12 max-w-6xl border-t border-white/10 pt-6 text-center text-xs text-cream/40">

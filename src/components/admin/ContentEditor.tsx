@@ -22,14 +22,20 @@ export function ContentEditor({
   initial: Record<string, string>;
 }) {
   const [values, setValues] = useState<Record<string, string>>(initial);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const content = useMemo(() => contentFromValues(values), [values]);
   const setValue = (key: string, value: string) =>
     setValues((prev) => ({ ...prev, [key]: value }));
 
   return (
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-6">
-      {/* Campos (espaço no rodapé p/ a barra de prévia fixa no celular) */}
-      <div className="space-y-8 pb-20 lg:pb-2">
+      {/* Campos — role a página para editar TODAS as seções */}
+      <div className="space-y-8 lg:pb-2">
+        <p className="rounded-xl border border-gold/15 bg-gold/5 px-4 py-3 text-sm text-cream/70 lg:hidden">
+          Role a página para baixo para editar todas as seções. Toque em{" "}
+          <strong className="text-gold">Prévia</strong> (canto inferior) para ver
+          como vai ficar.
+        </p>
         {CONTENT_GROUPS.map((group) => (
           <section key={group.title} className="space-y-4">
             <h2 className="font-display text-xl text-gold">{group.title}</h2>
@@ -47,12 +53,44 @@ export function ContentEditor({
         ))}
       </div>
 
-      {/* Prévia — barra fixa no rodapé (celular) / painel fixo ao lado (desktop) */}
-      <aside
-        className="fixed inset-x-0 bottom-0 z-40 px-3 pb-3 lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-6 lg:z-auto lg:px-0 lg:pb-0"
-      >
+      {/* Desktop: prévia sempre visível, fixa ao lado */}
+      <aside className="hidden lg:sticky lg:top-6 lg:block">
         <SitePreview content={content} />
       </aside>
+
+      {/* Celular: botão flutuante + folha deslizante (não cobre o formulário) */}
+      <button
+        type="button"
+        onClick={() => setPreviewOpen(true)}
+        className="btn-gold fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full px-5 py-3 text-sm shadow-lg lg:hidden"
+      >
+        <span aria-hidden>👁</span> Prévia
+      </button>
+      {previewOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden">
+          <button
+            type="button"
+            aria-label="Fechar prévia"
+            onClick={() => setPreviewOpen(false)}
+            className="absolute inset-0 bg-black/60"
+          />
+          <div className="animate-pop-in relative max-h-[85vh] overflow-hidden rounded-t-3xl border-t border-white/10 bg-coffee-2 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm font-medium text-cream/80">
+                Prévia da loja
+              </span>
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(false)}
+                className="btn-ghost rounded-full px-4 py-1.5 text-sm"
+              >
+                Fechar
+              </button>
+            </div>
+            <SitePreview content={content} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

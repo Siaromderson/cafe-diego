@@ -4,10 +4,9 @@ import { useTransition } from "react";
 import { setOrderStatus } from "@/app/admin/actions";
 
 const OPTIONS = [
-  { value: "pending", label: "Pendente" },
+  { value: "pending", label: "Aguardando" },
   { value: "paid", label: "Pago" },
   { value: "delivered", label: "Entregue" },
-  { value: "canceled", label: "Cancelado" },
 ];
 
 export function OrderStatus({

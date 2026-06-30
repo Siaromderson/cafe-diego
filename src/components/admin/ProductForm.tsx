@@ -1,29 +1,62 @@
 "use client";
 
-import { useState } from "react";
-import { saveProduct, deleteProduct } from "@/app/admin/actions";
+import { useState, useTransition } from "react";
+import { saveProduct, deleteProduct, moveProduct } from "@/app/admin/actions";
 import type { Product } from "@/lib/types";
 
 const field =
   "w-full rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-sm text-cream placeholder:text-cream/35 outline-none focus:border-gold/60";
 const label = "text-xs uppercase tracking-widest text-cream/55";
 
-export function ProductForm({ product }: { product?: Product }) {
+export function ProductForm({
+  product,
+  index,
+  total,
+}: {
+  product?: Product;
+  index?: number;
+  total?: number;
+}) {
   const [open, setOpen] = useState(!product);
+  const [moving, startMove] = useTransition();
   const p = product;
+
+  const canReorder = index != null && total != null && total > 1;
+  const isFirst = index === 0;
+  const isLast = index != null && total != null && index === total - 1;
 
   if (product && !open) {
     return (
-      <div className="glass flex items-center justify-between rounded-2xl p-4">
-        <div className="flex items-center gap-4">
+      <div className="glass card-hover flex items-center justify-between gap-3 rounded-2xl p-4">
+        <div className="flex min-w-0 items-center gap-4">
+          {canReorder && (
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => startMove(() => moveProduct(p!.id, "up"))}
+                disabled={moving || isFirst}
+                aria-label="Subir"
+                className="rounded-md border border-white/12 px-2 py-0.5 text-cream/60 transition-colors hover:border-gold/50 hover:text-gold disabled:cursor-not-allowed disabled:opacity-25"
+              >
+                ↑
+              </button>
+              <button
+                onClick={() => startMove(() => moveProduct(p!.id, "down"))}
+                disabled={moving || isLast}
+                aria-label="Descer"
+                className="rounded-md border border-white/12 px-2 py-0.5 text-cream/60 transition-colors hover:border-gold/50 hover:text-gold disabled:cursor-not-allowed disabled:opacity-25"
+              >
+                ↓
+              </button>
+            </div>
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={p!.image_url}
             alt=""
-            className="h-14 w-12 rounded-lg object-contain"
+            className="h-14 w-12 shrink-0 rounded-lg object-contain"
           />
-          <div>
-            <p className="font-medium text-cream">{p!.name}</p>
+          <div className="min-w-0">
+            <p className="truncate font-medium text-cream">{p!.name}</p>
             <p className="text-sm text-cream/55">
               {p!.weight_g}g · {(p!.price_cents / 100).toLocaleString("pt-BR", {
                 style: "currency",
@@ -35,7 +68,7 @@ export function ProductForm({ product }: { product?: Product }) {
         </div>
         <button
           onClick={() => setOpen(true)}
-          className="btn-ghost rounded-full px-4 py-2 text-sm"
+          className="btn-ghost shrink-0 rounded-full px-4 py-2 text-sm"
         >
           Editar
         </button>

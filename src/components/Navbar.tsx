@@ -47,6 +47,12 @@ export function Navbar() {
               {l.label}
             </a>
           ))}
+          <Link
+            href="/cadastro"
+            className="text-sm font-medium tracking-wide text-gold transition-colors hover:text-amber"
+          >
+            Cadastre-se
+          </Link>
         </div>
 
         <div className="flex items-center gap-3">

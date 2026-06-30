@@ -75,9 +75,9 @@ export function Hero({ content = CONTENT_DEFAULTS }: { content?: SiteContent }) 
           style={{ animationDelay: "320ms" }}
         >
           {[
-            { k: "100%", v: "Arábica" },
-            { k: "Grão ou", v: "Moído" },
-            { k: "2 dias", v: "Entrega CG" },
+            { k: content.heroStat1Top, v: content.heroStat1Bottom },
+            { k: content.heroStat2Top, v: content.heroStat2Bottom },
+            { k: content.heroStat3Top, v: content.heroStat3Bottom },
           ].map((s) => (
             <div key={s.v} className="glass rounded-2xl px-3 py-5">
               <div className="font-display text-2xl font-semibold gold-text">

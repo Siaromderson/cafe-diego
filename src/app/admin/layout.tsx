@@ -4,15 +4,7 @@ import { hasSupabase } from "@/lib/env";
 import { getCurrentUser, getIsAdmin } from "@/lib/auth";
 import { BrandMark } from "@/components/BrandMark";
 import { RealtimeRefresh } from "@/components/admin/RealtimeRefresh";
-
-const NAV = [
-  { href: "/admin", label: "Pedidos" },
-  { href: "/admin/entregues", label: "Entregues" },
-  { href: "/admin/clientes", label: "Clientes" },
-  { href: "/admin/produtos", label: "Produtos" },
-  { href: "/admin/conteudo", label: "Conteúdo" },
-  { href: "/admin/config", label: "Configurações" },
-];
+import { AdminNav } from "@/components/admin/AdminNav";
 
 export default async function AdminLayout({
   children,
@@ -53,29 +45,13 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <RealtimeRefresh />
-      <header className="glass-strong flex flex-col items-start justify-between gap-4 rounded-2xl px-6 py-4 sm:flex-row sm:items-center">
+      <header className="glass-strong sticky top-3 z-30 flex flex-col items-start justify-between gap-4 rounded-3xl px-5 py-4 sm:flex-row sm:items-center sm:px-6">
         <BrandMark />
-        <nav className="flex flex-wrap gap-1">
-          {NAV.map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              className="rounded-full px-4 py-2 text-sm text-cream/75 transition-colors hover:bg-white/8 hover:text-gold"
-            >
-              {n.label}
-            </Link>
-          ))}
-          <Link
-            href="/"
-            className="rounded-full px-4 py-2 text-sm text-cream/50 hover:text-gold"
-          >
-            Ver loja ↗
-          </Link>
-        </nav>
+        <AdminNav />
       </header>
-      <div className="mt-6">{children}</div>
+      <div className="mt-8">{children}</div>
     </div>
   );
 }

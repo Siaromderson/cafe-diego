@@ -27,8 +27,8 @@ export default async function SuccessPage({
         </h1>
         <p className="mt-3 text-cream/70">
           Recebemos seu pedido{order ? ` #${order.slice(0, 8)}` : ""}. Vamos
-          preparar tudo e entregar em Campo Grande em até 2 dias úteis. Você
-          recebe novidades pelo WhatsApp.
+          preparar tudo e entregar em Campo Grande em até 24h. Você recebe
+          novidades pelo WhatsApp.
         </p>
         {sim && (
           <p className="mt-4 rounded-xl border border-gold/30 bg-gold/10 px-4 py-2 text-xs text-gold">
