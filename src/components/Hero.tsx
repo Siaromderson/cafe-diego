@@ -26,9 +26,9 @@ export function Hero({ content = CONTENT_DEFAULTS }: { content?: SiteContent }) 
           className="animate-float-up mx-auto mb-4 h-44 w-auto rounded-3xl drop-shadow-[0_10px_40px_rgba(160,30,30,0.35)] sm:h-60"
           style={{
             WebkitMaskImage:
-              "radial-gradient(ellipse 80% 80% at 50% 50%, #000 60%, transparent 100%)",
+              "radial-gradient(ellipse 75% 75% at 50% 50%, #000 35%, transparent 92%)",
             maskImage:
-              "radial-gradient(ellipse 80% 80% at 50% 50%, #000 60%, transparent 100%)",
+              "radial-gradient(ellipse 75% 75% at 50% 50%, #000 35%, transparent 92%)",
           }}
         />
         <p className="animate-float-up mb-5 inline-flex items-center gap-2 rounded-full border border-gold/25 bg-white/5 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.3em] text-gold backdrop-blur">
