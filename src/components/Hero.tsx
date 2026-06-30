@@ -79,11 +79,14 @@ export function Hero({ content = CONTENT_DEFAULTS }: { content?: SiteContent }) 
             { k: content.heroStat2Top, v: content.heroStat2Bottom },
             { k: content.heroStat3Top, v: content.heroStat3Bottom },
           ].map((s) => (
-            <div key={s.v} className="glass rounded-2xl px-3 py-5">
-              <div className="font-display text-2xl font-semibold gold-text">
+            <div
+              key={s.v}
+              className="glass flex flex-col items-center justify-center rounded-2xl px-3 py-5"
+            >
+              <div className="font-display text-xl font-semibold leading-tight gold-text text-balance sm:text-2xl">
                 {s.k}
               </div>
-              <div className="mt-1 text-xs uppercase tracking-widest text-cream/60">
+              <div className="mt-1.5 text-xs uppercase tracking-widest text-cream/60">
                 {s.v}
               </div>
             </div>
