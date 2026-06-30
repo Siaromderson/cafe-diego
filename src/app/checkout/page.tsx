@@ -32,7 +32,15 @@ export default function CheckoutPage() {
       .then((r) => r.json())
       .then((d) => {
         if (Array.isArray(d?.options)) setShipOptions(d.options);
-        if (Array.isArray(d?.payMethods)) setPayMethods(d.payMethods);
+        if (Array.isArray(d?.payMethods) && d.payMethods.length) {
+          setPayMethods(d.payMethods);
+          // Garante que a forma selecionada existe entre as ativas.
+          setPayMethod((cur) =>
+            d.payMethods.some((m: PayMethod) => m.key === cur)
+              ? cur
+              : d.payMethods[0].key
+          );
+        }
       })
       .catch(() => {});
   }, []);
@@ -171,8 +179,8 @@ export default function CheckoutPage() {
             Finalizar pedido
           </h1>
           <p className="mt-1 text-sm text-cream/60">
-            Pague com Pix, débito ou crédito. ⚡ Entrega em até 24h ou retire no
-            local sem custo.
+            Pagamento pelo Mercado Pago. ⚡ Entrega em até 24h ou retire no local
+            sem custo.
           </p>
 
           <h2 className="font-display mt-7 text-lg text-gold">Seus dados</h2>
@@ -388,7 +396,7 @@ export default function CheckoutPage() {
             {loading ? "Processando…" : "Pagar agora"}
           </button>
           <p className="mt-3 text-center text-xs text-cream/45">
-            Pagamento seguro · Mercado Pago · Pix, débito e crédito
+            Pagamento seguro · Mercado Pago
           </p>
           <Link
             href="/#produtos"

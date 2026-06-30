@@ -57,18 +57,33 @@ const headers = (idempotencyKey?: string): Record<string, string> => ({
  * forma escolhida na loja — assim a taxa cobrada bate com o que o cliente paga.
  */
 function paymentMethodsFor(payMethod?: string) {
-  const exclude = (types: string[]) => ({
-    excluded_payment_types: types.map((id) => ({ id })),
-    installments: 1,
+  // Tipos do Mercado Pago: credit_card, debit_card, ticket, bank_transfer (Pix),
+  // account_money (saldo MP), prepaid_card, atm.
+  const ALL = [
+    "credit_card",
+    "debit_card",
+    "ticket",
+    "bank_transfer",
+    "account_money",
+    "prepaid_card",
+    "atm",
+  ];
+  /** Mantém só os tipos informados, excluindo todo o resto. */
+  const only = (keep: string[], installments?: number) => ({
+    excluded_payment_types: ALL.filter((id) => !keep.includes(id)).map((id) => ({
+      id,
+    })),
+    ...(installments ? { installments } : {}),
   });
   switch (payMethod) {
     case "pix":
-      return exclude(["credit_card", "debit_card", "ticket", "prepaid_card"]);
-    case "debit":
-      return exclude(["credit_card", "ticket", "bank_transfer"]);
+      return only(["bank_transfer"], 1);
+    case "saldo":
+      // Saldo em conta do Mercado Pago.
+      return only(["account_money"], 1);
     case "credit":
-      // crédito permite parcelar; deixamos o limite no padrão da conta
-      return { excluded_payment_types: [{ id: "debit_card" }, { id: "ticket" }] };
+      // Crédito permite parcelar; deixamos o limite no padrão da conta.
+      return only(["credit_card"]);
     default:
       return {};
   }

@@ -1,6 +1,7 @@
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { T } from "@/lib/tables";
 import { SettingField } from "@/components/admin/SettingField";
+import { ToggleField } from "@/components/admin/ToggleField";
 import { HelpButton } from "@/components/admin/HelpButton";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { clearAllOrders } from "@/app/admin/actions";
@@ -48,6 +49,42 @@ export default async function AdminConfig() {
       </div>
 
       <div className="flex items-center gap-2 pt-4">
+        <h2 className="font-display text-xl text-gold">
+          Formas de pagamento
+        </h2>
+        <HelpButton title="Ativar/desativar formas de pagamento">
+          <p>
+            Ligue ou desligue cada forma de pagamento que aparece no checkout.
+            O que estiver <strong>desligado</strong> some da loja na hora.
+          </p>
+          <p>
+            Mantenha pelo menos uma ligada. Se desligar todas, a loja mostra
+            todas como segurança (pra não ficar sem opção de pagar).
+          </p>
+        </HelpButton>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <ToggleField
+          settingKey="pay_pix_on"
+          label="Pix"
+          hint="Aparece no checkout"
+          value={map.get("pay_pix_on") ?? "on"}
+        />
+        <ToggleField
+          settingKey="pay_saldo_on"
+          label="Saldo do Mercado Pago"
+          hint="Pagamento com saldo em conta MP"
+          value={map.get("pay_saldo_on") ?? "on"}
+        />
+        <ToggleField
+          settingKey="pay_credit_on"
+          label="Crédito"
+          hint="Cartão de crédito (permite parcelar)"
+          value={map.get("pay_credit_on") ?? "on"}
+        />
+      </div>
+
+      <div className="flex items-center gap-2 pt-4">
         <h2 className="font-display text-xl text-gold">Taxas de pagamento</h2>
         <HelpButton title="Taxas repassadas ao cliente">
           <p>
@@ -74,10 +111,10 @@ export default async function AdminConfig() {
           value={map.get("fee_pix_pct") ?? "0"}
         />
         <SettingField
-          settingKey="fee_debit_pct"
-          label="Taxa do débito (%)"
-          hint="Ex: 1,8"
-          value={map.get("fee_debit_pct") ?? "0"}
+          settingKey="fee_saldo_pct"
+          label="Taxa do saldo MP (%)"
+          hint="Saldo do Mercado Pago"
+          value={map.get("fee_saldo_pct") ?? map.get("fee_debit_pct") ?? "0"}
         />
         <SettingField
           settingKey="fee_credit_pct"

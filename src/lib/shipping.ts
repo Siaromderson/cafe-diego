@@ -1,7 +1,7 @@
 import { hasSupabase } from "./env";
 import { getSupabaseAdmin } from "./supabase/server";
 import { T } from "./tables";
-import { parsePct, type PayMethod } from "./payments";
+import { parsePct, PAY_METHODS, type PayMethod } from "./payments";
 
 /** Taxa de entrega padrão (em reais), ajustável no painel. */
 export const DELIVERY_FEE_DEFAULT = "15,00";
@@ -65,7 +65,16 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
 export const isPickup = (method: string | undefined | null) =>
   method === PICKUP_KEY;
 
-/** Lê as formas de pagamento e suas taxas a partir das settings. */
+/** Uma forma de pagamento está ativa? (settings `pay_<key>_on`; padrão = ligada) */
+export function isPayEnabled(value: string | undefined): boolean {
+  return String(value ?? "on").toLowerCase() !== "off";
+}
+
+/**
+ * Lê as formas de pagamento, taxas e o liga/desliga a partir das settings.
+ * Retorna só as formas ativas (e nunca uma lista vazia: se tudo estiver
+ * desligado, devolve todas como salvaguarda para a loja não travar).
+ */
 export async function getPaymentMethods(): Promise<PayMethod[]> {
   let map = new Map<string, string>();
   if (hasSupabase) {
@@ -73,18 +82,26 @@ export async function getPaymentMethods(): Promise<PayMethod[]> {
     const { data } = await sb.from(T.settings).select("key, value");
     map = new Map((data ?? []).map((s) => [s.key, s.value]));
   }
-  // Qualquer forma pode ter taxa repassada ao cliente — todas configuráveis
-  // no painel. O Mercado Pago não informa a taxa dele aqui, então o valor
-  // cobrado segue o percentual definido em Configurações (0 = sem taxa).
-  const pixPct = parsePct(map.get("fee_pix_pct"));
-  return [
-    {
-      key: "pix",
-      label: "Pix",
-      feePct: pixPct,
-      hint: pixPct > 0 ? undefined : "Sem taxa",
-    },
-    { key: "debit", label: "Débito", feePct: parsePct(map.get("fee_debit_pct")) },
-    { key: "credit", label: "Crédito", feePct: parsePct(map.get("fee_credit_pct")) },
-  ];
+
+  // O Mercado Pago não informa a taxa dele aqui — o valor cobrado do cliente
+  // segue o percentual definido em Configurações (0 = sem taxa).
+  const all: PayMethod[] = PAY_METHODS.map((m) => {
+    // "saldo" reaproveita a taxa que antes era do "débito", se existir.
+    const pct =
+      m.key === "saldo"
+        ? parsePct(map.get("fee_saldo_pct") ?? map.get("fee_debit_pct"))
+        : parsePct(map.get(m.feeKey));
+    return {
+      key: m.key,
+      label: m.label,
+      feePct: pct,
+      hint: pct > 0 ? undefined : "Sem taxa",
+    };
+  });
+
+  const enabled = all.filter((m) => {
+    const def = PAY_METHODS.find((p) => p.key === m.key)!;
+    return isPayEnabled(map.get(def.onKey));
+  });
+  return enabled.length ? enabled : all;
 }
