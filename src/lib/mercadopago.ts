@@ -32,6 +32,12 @@ export interface CreatePreferenceInput {
   items: MpItem[];
   /** "pix" | "debit" | "credit" — restringe os meios na tela do Mercado Pago. */
   payMethod?: string;
+  /**
+   * URL pública da loja (ex.: https://cafe-diego.vercel.app), usada nas
+   * back_urls e no webhook. Calculada a partir da requisição para não
+   * depender de variável de ambiente. Cai no `env.siteUrl` se ausente.
+   */
+  baseUrl?: string;
 }
 
 export interface CreatePreferenceResult {
@@ -73,7 +79,13 @@ export async function createMercadoPagoPreference(
 ): Promise<CreatePreferenceResult> {
   const [firstName, ...rest] = input.payer.name.split(" ");
   const doc = input.payer.document?.replace(/\D/g, "") || "";
-  const body = {
+
+  // URL pública da loja (sem barra final). O Mercado Pago exige uma
+  // back_urls.success válida e pública para aceitar o `auto_return`.
+  const base = (input.baseUrl || env.siteUrl).replace(/\/+$/, "");
+  const isPublicHttps = /^https:\/\//.test(base);
+
+  const body: Record<string, unknown> = {
     external_reference: input.referenceId,
     items: input.items.map((i) => ({
       id: i.id,
@@ -92,14 +104,18 @@ export async function createMercadoPagoPreference(
     },
     payment_methods: paymentMethodsFor(input.payMethod),
     back_urls: {
-      success: `${env.siteUrl}/checkout/sucesso?order=${input.referenceId}`,
-      pending: `${env.siteUrl}/checkout/sucesso?order=${input.referenceId}`,
-      failure: `${env.siteUrl}/checkout/cancelado?order=${input.referenceId}`,
+      success: `${base}/checkout/sucesso?order=${input.referenceId}`,
+      pending: `${base}/checkout/sucesso?order=${input.referenceId}`,
+      failure: `${base}/checkout/cancelado?order=${input.referenceId}`,
     },
-    auto_return: "approved",
-    notification_url: `${env.siteUrl}/api/webhooks/mercadopago`,
+    notification_url: `${base}/api/webhooks/mercadopago`,
     statement_descriptor: "CAFEDOFEIRANTE",
   };
+
+  // `auto_return` só é aceito com back_urls públicas (https). Em localhost/http
+  // (testes locais), enviá-lo causaria erro 400 "back_url.success must be
+  // defined" — então só ativamos quando a URL é pública.
+  if (isPublicHttps) body.auto_return = "approved";
 
   const res = await fetch(`${env.mpBase}/checkout/preferences`, {
     method: "POST",

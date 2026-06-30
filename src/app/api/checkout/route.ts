@@ -29,6 +29,18 @@ interface CheckoutBody {
   paymentMethod?: string;
 }
 
+/** Origem pública da requisição (https://dominio) — sem depender de env. */
+function resolveBaseUrl(req: NextRequest): string {
+  const origin = req.headers.get("origin");
+  if (origin && /^https?:\/\//.test(origin)) return origin.replace(/\/+$/, "");
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  if (host) {
+    const proto = req.headers.get("x-forwarded-proto") ?? "https";
+    return `${proto}://${host}`.replace(/\/+$/, "");
+  }
+  return env.siteUrl.replace(/\/+$/, "");
+}
+
 export async function POST(req: NextRequest) {
   let body: CheckoutBody;
   try {
@@ -36,6 +48,8 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
+
+  const baseUrl = resolveBaseUrl(req);
 
   const { customer, address, items, shippingMethod, paymentMethod } = body;
   const pickup = isPickup(shippingMethod);
@@ -216,6 +230,7 @@ export async function POST(req: NextRequest) {
     try {
       const preference = await createMercadoPagoPreference({
         referenceId,
+        baseUrl,
         payMethod: chosenPay.key,
         payer: {
           name: customer.name,
@@ -258,7 +273,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       orderId,
       simulated: true,
-      paymentUrl: `${env.siteUrl}/checkout/sucesso?order=${orderId}&sim=1`,
+      paymentUrl: `${baseUrl}/checkout/sucesso?order=${orderId}&sim=1`,
     });
   }
 
