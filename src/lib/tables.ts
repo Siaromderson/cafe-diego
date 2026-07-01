@@ -7,4 +7,5 @@ export const T = {
   orderItems: "cafe_diego_order_items",
   settings: "cafe_diego_settings",
   admins: "cafe_diego_admins",
+  pageViews: "cafe_diego_page_views",
 } as const;

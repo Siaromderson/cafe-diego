@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter, Great_Vibes } from "next/font/google";
 import "./globals.css";
+import { PageView } from "@/components/PageView";
 
 const script = Great_Vibes({
   variable: "--font-script",
@@ -43,6 +44,7 @@ export default function RootLayout({
       <body
         className={`${display.variable} ${body.variable} ${script.variable} antialiased`}
       >
+        <PageView />
         {children}
       </body>
     </html>

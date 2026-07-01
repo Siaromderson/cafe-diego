@@ -25,6 +25,25 @@ export default async function AdminOrders({
     .order("created_at", { ascending: false })
     .limit(500);
 
+  // ---- Acessos ao site (métrica de visitas) ----
+  const startToday = new Date();
+  startToday.setHours(0, 0, 0, 0);
+  const viewsCount = () =>
+    sb.from(T.pageViews).select("*", { count: "exact", head: true });
+  let periodViewsQ = viewsCount();
+  if (range.from)
+    periodViewsQ = periodViewsQ.gte("created_at", range.from.toISOString());
+  if (range.to)
+    periodViewsQ = periodViewsQ.lte("created_at", range.to.toISOString());
+  const [totalRes, todayRes, periodRes] = await Promise.all([
+    viewsCount(),
+    viewsCount().gte("created_at", startToday.toISOString()),
+    periodViewsQ,
+  ]);
+  const viewsTotal = totalRes.count ?? 0;
+  const viewsToday = todayRes.count ?? 0;
+  const viewsPeriod = periodRes.count ?? 0;
+
   const all = (orders ?? []) as (OrderRow & {
     paid_at?: string;
     address_json?: { city?: string };
@@ -146,6 +165,43 @@ export default async function AdminOrders({
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="glass mt-4 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-2xl p-5">
+        <div className="flex items-center gap-2">
+          <span className="text-lg opacity-80">👀</span>
+          <span className="text-xs uppercase tracking-widest text-cream/55">
+            Acessos ao site
+          </span>
+          <HelpButton title="Acessos ao site">
+            <p>
+              Quantas vezes o site foi aberto. Bom para acompanhar a campanha do
+              Instagram e o link que você mandou pros contatos.
+            </p>
+            <p>
+              <strong>Hoje</strong> e <strong>Total</strong> são gerais;{" "}
+              <strong>No período</strong> segue o filtro de data acima.
+            </p>
+          </HelpButton>
+        </div>
+        <div>
+          <div className="font-display text-2xl font-semibold gold-text">
+            {viewsToday.toLocaleString("pt-BR")}
+          </div>
+          <div className="text-xs text-cream/50">hoje</div>
+        </div>
+        <div>
+          <div className="font-display text-2xl font-semibold gold-text">
+            {viewsPeriod.toLocaleString("pt-BR")}
+          </div>
+          <div className="text-xs text-cream/50">no período ({range.label})</div>
+        </div>
+        <div>
+          <div className="font-display text-2xl font-semibold gold-text">
+            {viewsTotal.toLocaleString("pt-BR")}
+          </div>
+          <div className="text-xs text-cream/50">no total</div>
+        </div>
       </div>
 
       <div className="mt-5">
