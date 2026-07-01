@@ -55,7 +55,7 @@ export default async function Home() {
               {[
                 { k: "Seleção", v: "grão a laser" },
                 { k: "Torra", v: "média artesanal" },
-                { k: "Moagem", v: "na hora certa" },
+                { k: "Moagem", v: "do grão expresso" },
                 { k: "Origem", v: "Oeste Paulista" },
               ].map((c) => (
                 <div

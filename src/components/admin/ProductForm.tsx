@@ -19,6 +19,8 @@ export function ProductForm({
 }) {
   const [open, setOpen] = useState(!product);
   const [moving, startMove] = useTransition();
+  const [mainUrl, setMainUrl] = useState(product?.image_url ?? "");
+  const [gallery, setGallery] = useState<string[]>(product?.images ?? []);
   const p = product;
 
   const canReorder = index != null && total != null && total > 1;
@@ -97,15 +99,26 @@ export function ProductForm({
         </div>
         <div>
           <span className={label}>Imagem principal</span>
-          <input type="hidden" name="image_url" defaultValue={p?.image_url} />
+          <input type="hidden" name="image_url" value={mainUrl} readOnly />
           <div className="mt-1 flex items-center gap-3">
-            {p?.image_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={p.image_url}
-                alt=""
-                className="h-14 w-12 rounded-lg object-contain ring-1 ring-white/10"
-              />
+            {mainUrl && (
+              <div className="relative shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={mainUrl}
+                  alt=""
+                  className="h-14 w-12 rounded-lg object-contain ring-1 ring-white/10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMainUrl("")}
+                  aria-label="Remover foto principal"
+                  title="Remover foto"
+                  className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-wine-bright text-xs font-bold text-white shadow hover:brightness-110"
+                >
+                  ×
+                </button>
+              </div>
             )}
             <input
               name="image_file"
@@ -115,7 +128,9 @@ export function ProductForm({
             />
           </div>
           <p className="mt-1 text-xs text-cream/40">
-            Suba uma foto do seu computador. {p ? "Deixe vazio para manter a atual." : ""}
+            {mainUrl
+              ? "Suba uma foto para substituir, ou clique no × para remover a atual."
+              : "Suba uma foto do seu computador."}
           </p>
         </div>
       </div>
@@ -161,21 +176,27 @@ export function ProductForm({
 
       <div>
         <span className={label}>Fotos extras (galeria)</span>
-        <input
-          type="hidden"
-          name="images_existing"
-          defaultValue={(p?.images ?? []).join("\n")}
-        />
-        {(p?.images ?? []).length > 0 && (
+        <input type="hidden" name="images_existing" value={gallery.join("\n")} readOnly />
+        {gallery.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
-            {(p?.images ?? []).map((src, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={i}
-                src={src}
-                alt=""
-                className="h-14 w-12 rounded-lg object-contain ring-1 ring-white/10"
-              />
+            {gallery.map((src, i) => (
+              <div key={src + i} className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt=""
+                  className="h-14 w-12 rounded-lg object-contain ring-1 ring-white/10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setGallery((g) => g.filter((_, j) => j !== i))}
+                  aria-label="Remover foto"
+                  title="Remover foto"
+                  className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-wine-bright text-xs font-bold text-white shadow hover:brightness-110"
+                >
+                  ×
+                </button>
+              </div>
             ))}
           </div>
         )}

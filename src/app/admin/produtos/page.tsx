@@ -27,7 +27,9 @@ export default async function AdminProducts() {
             <ul className="ml-4 list-disc space-y-0.5">
               <li>
                 <strong>Imagem principal e galeria:</strong> suba as fotos direto
-                do seu computador (clique e escolha o arquivo).
+                do seu computador (clique e escolha o arquivo). Para apagar uma
+                foto já enviada, clique no <strong>×</strong> vermelho no canto
+                dela e salve.
               </li>
               <li>
                 <strong>Preço, peso e estoque:</strong> aparecem na loja em tempo
