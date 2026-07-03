@@ -51,6 +51,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       id: payment.id,
       status: payment.status,
+      statusDetail: payment.statusDetail,
+      pix: payment.pix,
     });
   } catch (e) {
     return NextResponse.json(
