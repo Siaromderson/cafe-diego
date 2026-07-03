@@ -118,7 +118,7 @@ function PixQrCode({
           <button
             type="button"
             onClick={copy}
-            className="shrink-0 rounded-lg bg-[#4a7fc4] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#3a6cae]"
+            className="shrink-0 rounded-lg bg-[#b07c2a] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#8f6320]"
           >
             {copied ? "Copiado!" : "Copiar"}
           </button>
@@ -134,7 +134,7 @@ function PixQrCode({
         type="button"
         onClick={checkNow}
         disabled={checking || !paymentId}
-        className="mt-3 text-xs font-medium text-[#4a7fc4] underline underline-offset-2 disabled:opacity-50"
+        className="mt-3 text-xs font-medium text-[#b07c2a] underline underline-offset-2 disabled:opacity-50"
       >
         {checking ? "Verificando…" : "Já paguei, verificar agora"}
       </button>
@@ -175,6 +175,24 @@ export function MercadoPagoPayment({
             }}
             customization={{
               paymentMethods: paymentMethodsFor(payMethod),
+              visual: {
+                style: {
+                  theme: "default",
+                  // Cores da marca: dourado do Café do Feirante nos botões,
+                  // seleção e destaques, com cantos arredondados como o site.
+                  customVariables: {
+                    baseColor: "#b07c2a",
+                    baseColorFirstVariant: "#c8952f",
+                    baseColorSecondVariant: "#8f6320",
+                    buttonTextColor: "#2a1a0d",
+                    successColor: "#2f855a",
+                    borderRadiusSmall: "8px",
+                    borderRadiusMedium: "12px",
+                    borderRadiusLarge: "16px",
+                    borderRadiusFull: "9999px",
+                  },
+                },
+              },
             }}
             onSubmit={async ({ formData }) => {
               const res = await fetch("/api/payments/process", {
