@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { registerCustomer } from "@/app/cadastro/actions";
+import { PhoneInput } from "@/components/PhoneInput";
 
 const field =
   "w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3 text-cream placeholder:text-cream/35 outline-none transition-colors focus:border-gold/60";
@@ -11,6 +12,7 @@ export function CadastroForm() {
   const [pending, start] = useTransition();
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -71,12 +73,12 @@ export function CadastroForm() {
         <label className="text-xs uppercase tracking-widest text-cream/55">
           WhatsApp
         </label>
-        <input
-          name="phone"
-          inputMode="tel"
-          placeholder="(67) 99999-0000"
+        <PhoneInput
+          value={phone}
+          onChange={setPhone}
           className={`mt-1.5 ${field}`}
         />
+        <input type="hidden" name="phone" value={phone} />
       </div>
       <div>
         <label className="text-xs uppercase tracking-widest text-cream/55">

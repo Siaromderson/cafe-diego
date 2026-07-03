@@ -7,8 +7,9 @@ import { BRL } from "@/lib/types";
 import { useCart } from "@/store/cart";
 import { BrandMark } from "@/components/BrandMark";
 import { MercadoPagoPayment } from "@/components/MercadoPagoPayment";
+import { PhoneInput } from "@/components/PhoneInput";
 import { type PayMethod, feeCentsForPct } from "@/lib/payments";
-import { isValidBrazilPhone } from "@/lib/phone";
+import { isValidBrazilPhone, phoneForSubmit } from "@/lib/phone";
 
 interface ShipOption {
   key: string;
@@ -115,7 +116,7 @@ export default function CheckoutPage() {
       return;
     }
     if (!isValidBrazilPhone(form.phone)) {
-      setError("Telefone inválido. Use DDD + número (ex.: 67 99999-0000).");
+      setError("Telefone inválido. Digite o WhatsApp com DDD ou só o número.");
       return;
     }
     if (!isPickup) {
@@ -136,7 +137,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           customer: {
             name: form.name,
-            phone: form.phone,
+            phone: phoneForSubmit(form.phone),
           },
           address: {
             cep: form.cep,
@@ -224,24 +225,11 @@ export default function CheckoutPage() {
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
             />
-            <div>
-              <input
-                className={`${input} ${
-                  form.phone && !isValidBrazilPhone(form.phone)
-                    ? "border-wine-bright/60"
-                    : ""
-                }`}
-                placeholder="WhatsApp (DDD)"
-                inputMode="tel"
-                value={form.phone}
-                onChange={(e) => set("phone", e.target.value)}
-              />
-              {form.phone && !isValidBrazilPhone(form.phone) && (
-                <span className="mt-1 block text-xs text-wine-bright/90">
-                  Número inválido — use DDD + número (ex.: 67 99999-0000).
-                </span>
-              )}
-            </div>
+            <PhoneInput
+              className={input}
+              value={form.phone}
+              onChange={(v) => set("phone", v)}
+            />
           </div>
 
           {/* Forma de entrega */}

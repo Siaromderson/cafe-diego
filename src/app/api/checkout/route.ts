@@ -11,7 +11,7 @@ import {
   getPaymentMethods,
 } from "@/lib/shipping";
 import { feeCentsForPct } from "@/lib/payments";
-import { isValidBrazilPhone } from "@/lib/phone";
+import { isValidBrazilPhone, phoneForSubmit } from "@/lib/phone";
 import { notifyNewOrder } from "@/lib/whatsapp-notify";
 import { T } from "@/lib/tables";
 
@@ -58,15 +58,16 @@ export async function POST(req: NextRequest) {
   // E-mail e CPF não são mais pedidos no checkout — ficam opcionais.
   const customerEmail = customer?.email?.trim() || "";
   const customerCpf = customer?.cpf?.trim() || "";
-  if (!customer?.name || !customer?.phone) {
+  const customerPhone = phoneForSubmit(customer?.phone);
+  if (!customer?.name || !customerPhone) {
     return NextResponse.json(
       { error: "Preencha nome e telefone." },
       { status: 400 }
     );
   }
-  if (!isValidBrazilPhone(customer.phone)) {
+  if (!isValidBrazilPhone(customerPhone)) {
     return NextResponse.json(
-      { error: "Telefone inválido. Use DDD + número (ex.: 67 99999-0000)." },
+      { error: "Telefone inválido. Digite o WhatsApp com DDD ou só o número." },
       { status: 400 }
     );
   }
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
           await sb.from(T.customers).upsert({
             id: customerId,
             name: customer.name,
-            phone: customer.phone,
+            phone: customerPhone,
             cpf: customerCpf,
             email: customerEmail,
           });
@@ -174,7 +175,7 @@ export async function POST(req: NextRequest) {
         shipping_method: pickup ? PICKUP_KEY : shippingMethod ?? "delivery",
         reference_id: referenceId,
         customer_name: customer.name,
-        customer_phone: customer.phone,
+        customer_phone: customerPhone,
         customer_cpf: customerCpf,
         customer_email: customerEmail,
         address_json: address,
@@ -204,7 +205,7 @@ export async function POST(req: NextRequest) {
     void notifyNewOrder({
       referenceId,
       customerName: customer.name,
-      customerPhone: customer.phone,
+      customerPhone: customerPhone,
       items: lines.map((l) => ({
         name: l.product.name,
         qty: l.qty,
@@ -264,7 +265,7 @@ export async function POST(req: NextRequest) {
         payer: {
           name: customer.name,
           email: customerEmail,
-          phone: customer.phone,
+          phone: customerPhone,
           document: customerCpf,
         },
         items: paymentItems.map((i) => ({
@@ -323,7 +324,7 @@ export async function POST(req: NextRequest) {
         name: customer.name,
         document: customerCpf,
         email: customerEmail,
-        phone: customer.phone,
+        phone: customerPhone,
         ip,
       },
       items: [
