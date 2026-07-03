@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter, Great_Vibes } from "next/font/google";
 import "./globals.css";
 import { PageView } from "@/components/PageView";
+import { Analytics } from "@vercel/analytics/next";
 
 const script = Great_Vibes({
   variable: "--font-script",
@@ -46,6 +47,7 @@ export default function RootLayout({
       >
         <PageView />
         {children}
+        <Analytics />
       </body>
     </html>
   );
