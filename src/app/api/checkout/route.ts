@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasSupabase, hasNupay, hasMercadoPago, env } from "@/lib/env";
+import { hasSupabase, hasNupay, hasMercadoPago, hasMercadoPagoEmbedded, env } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { getProducts } from "@/lib/products-repo";
 import { createNupayPayment } from "@/lib/nupay";
@@ -265,7 +265,13 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         orderId,
-        paymentUrl: preference.paymentUrl,
+        referenceId,
+        preferenceId: preference.preferenceId,
+        amount: totalCents / 100,
+        publicKey: hasMercadoPagoEmbedded ? env.mpPublicKey : undefined,
+        embedded: hasMercadoPagoEmbedded,
+        // Fallback: redirect externo quando a chave pública não está configurada.
+        paymentUrl: hasMercadoPagoEmbedded ? undefined : preference.paymentUrl,
       });
     } catch (e) {
       return NextResponse.json(

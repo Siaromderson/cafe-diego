@@ -7,6 +7,11 @@ import { DateRangeFilter } from "@/components/admin/DateRangeFilter";
 import { ExportButton, type ReportRow } from "@/components/admin/ExportButton";
 import { OrderCard, type OrderRow } from "@/components/admin/OrderCard";
 import { resolveRange, inRange } from "@/lib/admin-range";
+import {
+  formatDateKeyInTz,
+  getZonedParts,
+  startOfDayInTz,
+} from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +31,7 @@ export default async function AdminOrders({
     .limit(500);
 
   // ---- Acessos ao site (métrica de visitas) ----
-  const startToday = new Date();
-  startToday.setHours(0, 0, 0, 0);
+  const startToday = startOfDayInTz();
   const viewsCount = () =>
     sb.from(T.pageViews).select("*", { count: "exact", head: true });
   let periodViewsQ = viewsCount();
@@ -81,16 +85,15 @@ export default async function AdminOrders({
   }
   const series: ChartPoint[] = [];
   for (let i = 0; i < span; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
+    const d = new Date(start.getTime() + i * dayMs);
+    const key = formatDateKeyInTz(d);
     const dayOrders = paid.filter(
-      (o) => (o.paid_at || o.created_at || "").slice(0, 10) === key
+      (o) =>
+        formatDateKeyInTz(o.paid_at || o.created_at || "") === key
     );
+    const { day, month } = getZonedParts(d);
     series.push({
-      label: `${String(d.getDate()).padStart(2, "0")}/${String(
-        d.getMonth() + 1
-      ).padStart(2, "0")}`,
+      label: `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}`,
       revenueCents: dayOrders.reduce((n, o) => n + (o.total_cents ?? 0), 0),
       orders: dayOrders.length,
     });

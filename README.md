@@ -27,14 +27,19 @@ npm run dev                  # http://localhost:3000
 
 ## Ativar pagamento (Mercado Pago)
 
-A loja usa o **Checkout Pro**: o cliente é redirecionado ao Mercado Pago e
-escolhe Pix, débito ou crédito. Em `.env.local`:
+A loja usa o **Payment Brick** do Mercado Pago: o cliente paga **na própria
+página de checkout**, sem ser redirecionado para outro site. Em `.env.local`:
 - `MERCADOPAGO_ACCESS_TOKEN` — Access Token da sua aplicação
   (painel [Mercado Pago Developers](https://www.mercadopago.com.br/developers) →
   *Suas aplicações* → *Credenciais*). Use as de **teste** primeiro.
+- `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` — Chave pública (mesma tela de
+  credenciais). Necessária para o pagamento embutido no site.
 - `MERCADOPAGO_WEBHOOK_SECRET` — (opcional) segredo do webhook, para validar a
   assinatura `x-signature` das notificações.
 - `NEXT_PUBLIC_SITE_URL` — URL pública (em prod: `https://www.cafedofeirantems.com.br`).
+
+> Sem a chave pública, o checkout volta ao modo antigo (redirecionamento externo
+> para o Mercado Pago).
 
 O webhook de status é `POST /api/webhooks/mercadopago` — cadastre essa URL no
 painel do Mercado Pago (*Webhooks*), assinando o evento **Pagamentos**.
