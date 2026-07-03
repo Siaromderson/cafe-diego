@@ -12,6 +12,7 @@ import {
 } from "@/lib/shipping";
 import { feeCentsForPct } from "@/lib/payments";
 import { isValidBrazilPhone } from "@/lib/phone";
+import { notifyNewOrder } from "@/lib/whatsapp-notify";
 import { T } from "@/lib/tables";
 
 interface CheckoutBody {
@@ -198,6 +199,27 @@ export async function POST(req: NextRequest) {
         qty: l.qty,
         unit_price_cents: l.product.price_cents,
       }))
+    );
+
+    void notifyNewOrder({
+      referenceId,
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      items: lines.map((l) => ({
+        name: l.product.name,
+        qty: l.qty,
+        unitPriceCents: l.product.price_cents,
+      })),
+      shippingLabel,
+      shippingCents,
+      payLabel,
+      feeCents,
+      totalCents,
+      isPickup: pickup,
+      address: pickup ? undefined : address,
+      statusLabel: "Aguardando pagamento",
+    }).catch((err) =>
+      console.error("[whatsapp] Falha ao avisar novo pedido:", err)
     );
   }
 

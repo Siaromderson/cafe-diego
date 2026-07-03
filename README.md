@@ -41,6 +41,24 @@ página de checkout**, sem ser redirecionado para outro site. Em `.env.local`:
 > Sem a chave pública, o checkout volta ao modo antigo (redirecionamento externo
 > para o Mercado Pago).
 
+## Aviso de pedido no WhatsApp
+
+Quando um cliente finaliza um pedido, a loja pode receber uma mensagem
+automática no WhatsApp com nome, telefone, itens e valor total.
+
+Configure **uma** das opções abaixo em `.env.local` / Vercel:
+
+**Opção A — WhatsApp Cloud API (Meta):**
+- `WHATSAPP_CLOUD_TOKEN` — token permanente da API
+- `WHATSAPP_PHONE_NUMBER_ID` — ID do número que envia as mensagens
+- O destino é o número em **Configurações → WhatsApp** no painel admin
+  (ou `WHATSAPP_NOTIFY_TO` para sobrescrever)
+
+**Opção B — Webhook genérico (Z-API, Evolution API, n8n, etc.):**
+- `WHATSAPP_WEBHOOK_URL` — URL que recebe `POST` com JSON
+  `{ "to": "5567...", "message": "texto..." }`
+- `WHATSAPP_WEBHOOK_TOKEN` — (opcional) Bearer token de autenticação
+
 O webhook de status é `POST /api/webhooks/mercadopago` — cadastre essa URL no
 painel do Mercado Pago (*Webhooks*), assinando o evento **Pagamentos**.
 
