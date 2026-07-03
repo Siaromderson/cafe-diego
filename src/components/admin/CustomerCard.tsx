@@ -36,8 +36,7 @@ export function CustomerCard({ c }: { c: CustomerView }) {
             {c.name || "Cliente"}
           </p>
           <p className="text-sm text-cream/55">
-            {c.email}
-            {c.phone ? ` · ${c.phone}` : ""}
+            {[c.phone, c.email].filter(Boolean).join(" · ") || "sem contato"}
           </p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs">
             <span className="rounded-full bg-white/6 px-2.5 py-1 text-cream/75">

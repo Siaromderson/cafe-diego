@@ -1,5 +1,6 @@
 import { getSupabaseServer } from "./supabase/server";
 import { T } from "./tables";
+import { normalizePhone } from "./phone";
 
 export interface CustomerOrder {
   id: string;
@@ -11,6 +12,7 @@ export interface CustomerOrder {
 }
 
 export interface CustomerView {
+  id: string;
   email: string;
   name: string;
   phone: string;
@@ -72,12 +74,23 @@ export async function getCustomers(): Promise<CustomerView[]> {
 
   const map = new Map<string, CustomerView>();
 
+  // Chave do cliente: telefone (normalizado) tem prioridade; senão, e-mail.
+  // Assim quem compra sem se cadastrar (só nome + WhatsApp) já vira cliente.
+  const keyOf = (phone?: string, email?: string): string | null => {
+    const p = normalizePhone(phone);
+    if (p) return `tel:${p}`;
+    const e = String(email || "").toLowerCase();
+    if (e) return `mail:${e}`;
+    return null;
+  };
+
   // semeia com os cadastros (mesmo sem pedidos)
   for (const c of customers ?? []) {
-    const email = String(c.email || "").toLowerCase();
-    if (!email) continue;
-    map.set(email, {
-      email: c.email,
+    const key = keyOf(c.phone, c.email);
+    if (!key) continue;
+    map.set(key, {
+      id: key,
+      email: c.email || "",
       name: c.name || "",
       phone: c.phone || "",
       orderCount: 0,
@@ -94,12 +107,13 @@ export async function getCustomers(): Promise<CustomerView[]> {
   }
 
   for (const o of (orders ?? []) as RawOrder[]) {
-    const email = String(o.customer_email || "").toLowerCase();
-    if (!email) continue;
-    let v = map.get(email);
+    const key = keyOf(o.customer_phone, o.customer_email);
+    if (!key) continue;
+    let v = map.get(key);
     if (!v) {
       v = {
-        email: o.customer_email || email,
+        id: key,
+        email: o.customer_email || "",
         name: o.customer_name || "",
         phone: o.customer_phone || "",
         orderCount: 0,
@@ -113,10 +127,11 @@ export async function getCustomers(): Promise<CustomerView[]> {
         addresses: [],
         history: [],
       };
-      map.set(email, v);
+      map.set(key, v);
     }
     if (!v.name && o.customer_name) v.name = o.customer_name;
     if (!v.phone && o.customer_phone) v.phone = o.customer_phone;
+    if (!v.email && o.customer_email) v.email = o.customer_email;
 
     v.orderCount++;
     const isPaid = o.status === "paid" || o.status === "delivered";

@@ -69,7 +69,7 @@ export default async function AdminCustomers() {
             o histórico.
           </p>
         ) : (
-          customers.map((c) => <CustomerCard key={c.email} c={c} />)
+          customers.map((c) => <CustomerCard key={c.id} c={c} />)
         )}
       </div>
     </div>
