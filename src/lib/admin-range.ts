@@ -3,6 +3,7 @@
 import {
   addDaysInTz,
   endOfDayInTz,
+  formatDateBR,
   parseDateInputInTz,
   startOfDayInTz,
 } from "@/lib/timezone";
@@ -82,7 +83,7 @@ export function resolveRange(params: {
       const to = params.to
         ? endOfDayInTz(parseDateInputInTz(params.to))
         : null;
-      const fmt = (d: Date) => d.toLocaleDateString("pt-BR");
+      const fmt = (d: Date) => formatDateBR(d);
       const label =
         from && to
           ? `${fmt(from)} – ${fmt(to)}`
