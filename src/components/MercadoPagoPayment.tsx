@@ -13,12 +13,29 @@ export interface MercadoPagoPaymentProps {
   onError: (message: string) => void;
 }
 
+/**
+ * Mostra no Brick apenas a forma escolhida na loja, pra bater com a taxa e o
+ * total já calculados. Pix = bankTransfer · saldo = mercadoPago · crédito =
+ * creditCard. O saldo sempre acompanha (o MP não permite excluí-lo).
+ */
+function paymentMethodsFor(payMethod: string) {
+  switch (payMethod) {
+    case "pix":
+      return { bankTransfer: "all", maxInstallments: 1 } as const;
+    case "saldo":
+      return { mercadoPago: "all", maxInstallments: 1 } as const;
+    case "credit":
+    default:
+      return { creditCard: "all", maxInstallments: 12 } as const;
+  }
+}
+
 export function MercadoPagoPayment({
   publicKey,
   preferenceId,
   amount,
   referenceId,
-  payMethod: _payMethod,
+  payMethod,
   onApproved,
   onError,
 }: MercadoPagoPaymentProps) {
@@ -32,15 +49,13 @@ export function MercadoPagoPayment({
         Pagamento seguro pelo Mercado Pago — você permanece neste site.
       </p>
       <Payment
+        key={payMethod}
         initialization={{
           amount,
           preferenceId,
         }}
         customization={{
-          paymentMethods: {
-            creditCard: "all",
-            maxInstallments: 12,
-          },
+          paymentMethods: paymentMethodsFor(payMethod),
         }}
         onSubmit={async ({ formData }) => {
           const res = await fetch("/api/payments/process", {
