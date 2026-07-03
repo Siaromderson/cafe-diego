@@ -6,6 +6,7 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import { T } from "@/lib/tables";
 import { BRL } from "@/lib/types";
 import { BrandMark } from "@/components/BrandMark";
+import { LogoutButton } from "@/components/LogoutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -35,13 +36,16 @@ export default async function AccountPage() {
         <Link href="/">
           <BrandMark />
         </Link>
-        <Link href="/" className="text-sm text-cream/60 hover:text-gold">
-          Loja ↗
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/" className="text-sm text-cream/60 hover:text-gold">
+            Loja ↗
+          </Link>
+          <LogoutButton />
+        </div>
       </div>
 
       <h1 className="font-display mt-10 text-3xl font-semibold text-cream">
-        Meus pedidos
+        Minhas compras
       </h1>
       <p className="mt-1 text-sm text-cream/55">{user.email}</p>
 
