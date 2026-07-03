@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BRL } from "@/lib/types";
 import type { CustomerView } from "@/lib/customers";
+import { DeleteCustomerButton } from "@/components/admin/DeleteCustomerButton";
 
 const STATUS: Record<string, string> = {
   pending: "Aguardando",
@@ -119,6 +120,14 @@ export function CustomerCard({ c }: { c: CustomerView }) {
               ))}
             </ul>
           )}
+
+          <div className="mt-4 flex justify-end border-t border-white/10 pt-3">
+            <DeleteCustomerButton
+              name={c.name}
+              phone={c.phone}
+              email={c.email}
+            />
+          </div>
         </div>
       )}
     </div>

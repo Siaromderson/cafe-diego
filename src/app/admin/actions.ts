@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSupabaseServer, getSupabaseAdmin } from "@/lib/supabase/server";
 import { getIsAdmin } from "@/lib/auth";
 import { T } from "@/lib/tables";
+import { normalizePhone } from "@/lib/phone";
 
 const BUCKET = "produtos";
 
@@ -67,6 +68,50 @@ export async function clearAllOrders() {
   revalidatePath("/admin");
   revalidatePath("/admin/entregues");
   revalidatePath("/admin/clientes");
+}
+
+/**
+ * Exclui um cliente em definitivo: apaga os pedidos dele (itens em cascata),
+ * o cadastro (endereços em cascata) e a conta de acesso. Casa pelo telefone
+ * e/ou e-mail — que é como a lista de clientes é agrupada.
+ * Ação destrutiva: a tela exige dupla confirmação antes de chamar aqui.
+ */
+export async function deleteCustomer(opts: { phone?: string; email?: string }) {
+  if (!(await getIsAdmin())) throw new Error("Não autorizado");
+  const sb = getSupabaseAdmin();
+  const phone = normalizePhone(opts.phone);
+  const email = String(opts.email || "").trim().toLowerCase();
+  if (!phone && !email) return;
+
+  // Cadastros (auth.users) que casam com esse cliente.
+  const ids = new Set<string>();
+  if (phone) {
+    const { data } = await sb.from(T.customers).select("id").eq("phone", phone);
+    (data ?? []).forEach((c) => ids.add(c.id));
+  }
+  if (email) {
+    const { data } = await sb.from(T.customers).select("id").eq("email", email);
+    (data ?? []).forEach((c) => ids.add(c.id));
+  }
+
+  // Apaga os pedidos (order_items caem em cascata pela FK).
+  if (phone) await sb.from(T.orders).delete().eq("customer_phone", phone);
+  if (email) await sb.from(T.orders).delete().eq("customer_email", email);
+  for (const id of ids) await sb.from(T.orders).delete().eq("customer_id", id);
+
+  // Apaga o cadastro (endereços em cascata) e a conta de acesso.
+  for (const id of ids) {
+    await sb.from(T.customers).delete().eq("id", id);
+    try {
+      await sb.auth.admin.deleteUser(id);
+    } catch {
+      // conta já removida ou inexistente — segue
+    }
+  }
+
+  revalidatePath("/admin/clientes");
+  revalidatePath("/admin");
+  revalidatePath("/admin/entregues");
 }
 
 export async function saveProduct(formData: FormData) {
