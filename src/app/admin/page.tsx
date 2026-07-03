@@ -3,6 +3,7 @@ import { T } from "@/lib/tables";
 import { BRL } from "@/lib/types";
 import { HelpButton } from "@/components/admin/HelpButton";
 import { SalesChart, type ChartPoint } from "@/components/admin/SalesChart";
+import { ViewsChart } from "@/components/admin/ViewsChart";
 import { DateRangeFilter } from "@/components/admin/DateRangeFilter";
 import { ExportButton, type ReportRow } from "@/components/admin/ExportButton";
 import { OrderCard, type OrderRow } from "@/components/admin/OrderCard";
@@ -12,6 +13,7 @@ import {
   getZonedParts,
   startOfDayInTz,
 } from "@/lib/timezone";
+import { buildViewsChart, viewsChartWindow } from "@/lib/views-chart";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +49,16 @@ export default async function AdminOrders({
   const viewsTotal = totalRes.count ?? 0;
   const viewsToday = todayRes.count ?? 0;
   const viewsPeriod = periodRes.count ?? 0;
+
+  // ---- Série de visitas para o gráfico (segue o filtro de data) ----
+  const chartWindow = viewsChartWindow(range);
+  const { data: viewRows } = await sb
+    .from(T.pageViews)
+    .select("created_at")
+    .gte("created_at", chartWindow.from.toISOString())
+    .lte("created_at", chartWindow.to.toISOString())
+    .order("created_at", { ascending: true });
+  const viewsChart = buildViewsChart(range, viewRows ?? []);
 
   const all = (orders ?? []) as (OrderRow & {
     paid_at?: string;
@@ -183,7 +195,8 @@ export default async function AdminOrders({
             </p>
             <p>
               <strong>Hoje</strong> e <strong>Total</strong> são gerais;{" "}
-              <strong>No período</strong> segue o filtro de data acima.
+              <strong>No período</strong> e o gráfico abaixo seguem o filtro de
+              data acima.
             </p>
           </HelpButton>
         </div>
@@ -205,6 +218,10 @@ export default async function AdminOrders({
           </div>
           <div className="text-xs text-cream/50">no total</div>
         </div>
+      </div>
+
+      <div className="mt-4">
+        <ViewsChart meta={viewsChart} />
       </div>
 
       <div className="mt-5">
