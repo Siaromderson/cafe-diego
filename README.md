@@ -32,8 +32,10 @@ página de checkout**, sem ser redirecionado para outro site. Em `.env.local`:
 - `MERCADOPAGO_ACCESS_TOKEN` — Access Token da sua aplicação
   (painel [Mercado Pago Developers](https://www.mercadopago.com.br/developers) →
   *Suas aplicações* → *Credenciais*). Use as de **teste** primeiro.
-- `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` — Chave pública (mesma tela de
-  credenciais). Necessária para o pagamento embutido no site.
+- `MERCADOPAGO_PUBLIC_KEY` (ou `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`) — Chave
+  pública (mesma tela de credenciais). Necessária para o pagamento embutido no
+  site. Prefira `MERCADOPAGO_PUBLIC_KEY` — ela é lida em tempo de execução e não
+  exige rebuild ao ser alterada.
 - `MERCADOPAGO_WEBHOOK_SECRET` — (opcional) segredo do webhook, para validar a
   assinatura `x-signature` das notificações.
 - `NEXT_PUBLIC_SITE_URL` — URL pública (em prod: `https://www.cafedofeirantems.com.br`).

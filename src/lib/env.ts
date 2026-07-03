@@ -7,7 +7,12 @@ export const env = {
   nupayToken: process.env.NUPAY_MERCHANT_TOKEN ?? "",
   mpBase: process.env.MERCADOPAGO_BASE_URL ?? "https://api.mercadopago.com",
   mpAccessToken: process.env.MERCADOPAGO_ACCESS_TOKEN ?? "",
-  mpPublicKey: process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY ?? "",
+  // Aceita as duas formas: `MERCADOPAGO_PUBLIC_KEY` (lida em runtime, sem a
+  // pegadinha de build do prefixo NEXT_PUBLIC_) ou `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`.
+  mpPublicKey:
+    process.env.MERCADOPAGO_PUBLIC_KEY ??
+    process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY ??
+    "",
   mpWebhookSecret: process.env.MERCADOPAGO_WEBHOOK_SECRET ?? "",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   whatsappCloudToken: process.env.WHATSAPP_CLOUD_TOKEN ?? "",

@@ -38,7 +38,7 @@ export function GET() {
     chavePublicaPrefixo: mask(publicKey),
 
     dica: !publicKey
-      ? "Defina NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY na Vercel e faça um NOVO deploy (Redeploy)."
+      ? "Defina MERCADOPAGO_PUBLIC_KEY na Vercel e faça um NOVO deploy (Redeploy)."
       : !accessToken
         ? "Defina MERCADOPAGO_ACCESS_TOKEN na Vercel e faça um novo deploy."
         : "Tudo certo — o pagamento acontece na própria página, sem redirecionar.",
