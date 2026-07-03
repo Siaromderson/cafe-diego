@@ -27,14 +27,39 @@ npm run dev                  # http://localhost:3000
 
 ## Ativar pagamento (Mercado Pago)
 
-A loja usa o **Checkout Pro**: o cliente é redirecionado ao Mercado Pago e
-escolhe Pix, débito ou crédito. Em `.env.local`:
+A loja usa o **Payment Brick** do Mercado Pago: o cliente paga **na própria
+página de checkout**, sem ser redirecionado para outro site. Em `.env.local`:
 - `MERCADOPAGO_ACCESS_TOKEN` — Access Token da sua aplicação
   (painel [Mercado Pago Developers](https://www.mercadopago.com.br/developers) →
   *Suas aplicações* → *Credenciais*). Use as de **teste** primeiro.
+- `MERCADOPAGO_PUBLIC_KEY` (ou `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`) — Chave
+  pública (mesma tela de credenciais). Necessária para o pagamento embutido no
+  site. Prefira `MERCADOPAGO_PUBLIC_KEY` — ela é lida em tempo de execução e não
+  exige rebuild ao ser alterada.
 - `MERCADOPAGO_WEBHOOK_SECRET` — (opcional) segredo do webhook, para validar a
   assinatura `x-signature` das notificações.
 - `NEXT_PUBLIC_SITE_URL` — URL pública (em prod: `https://www.cafedofeirantems.com.br`).
+
+> Sem a chave pública, o checkout volta ao modo antigo (redirecionamento externo
+> para o Mercado Pago).
+
+## Aviso de pedido no WhatsApp
+
+Quando um cliente finaliza um pedido, a loja pode receber uma mensagem
+automática no WhatsApp com nome, telefone, itens e valor total.
+
+Configure **uma** das opções abaixo em `.env.local` / Vercel:
+
+**Opção A — WhatsApp Cloud API (Meta):**
+- `WHATSAPP_CLOUD_TOKEN` — token permanente da API
+- `WHATSAPP_PHONE_NUMBER_ID` — ID do número que envia as mensagens
+- O destino é o número em **Configurações → WhatsApp** no painel admin
+  (ou `WHATSAPP_NOTIFY_TO` para sobrescrever)
+
+**Opção B — Webhook genérico (Z-API, Evolution API, n8n, etc.):**
+- `WHATSAPP_WEBHOOK_URL` — URL que recebe `POST` com JSON
+  `{ "to": "5567...", "message": "texto..." }`
+- `WHATSAPP_WEBHOOK_TOKEN` — (opcional) Bearer token de autenticação
 
 O webhook de status é `POST /api/webhooks/mercadopago` — cadastre essa URL no
 painel do Mercado Pago (*Webhooks*), assinando o evento **Pagamentos**.

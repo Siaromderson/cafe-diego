@@ -3,10 +3,17 @@ import { T } from "@/lib/tables";
 import { BRL } from "@/lib/types";
 import { HelpButton } from "@/components/admin/HelpButton";
 import { SalesChart, type ChartPoint } from "@/components/admin/SalesChart";
+import { ViewsChart } from "@/components/admin/ViewsChart";
 import { DateRangeFilter } from "@/components/admin/DateRangeFilter";
 import { ExportButton, type ReportRow } from "@/components/admin/ExportButton";
 import { OrderCard, type OrderRow } from "@/components/admin/OrderCard";
 import { resolveRange, inRange } from "@/lib/admin-range";
+import {
+  formatDateKeyInTz,
+  getZonedParts,
+  startOfDayInTz,
+} from "@/lib/timezone";
+import { buildViewsChart, viewsChartWindow } from "@/lib/views-chart";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +33,7 @@ export default async function AdminOrders({
     .limit(500);
 
   // ---- Acessos ao site (métrica de visitas) ----
-  const startToday = new Date();
-  startToday.setHours(0, 0, 0, 0);
+  const startToday = startOfDayInTz();
   const viewsCount = () =>
     sb.from(T.pageViews).select("*", { count: "exact", head: true });
   let periodViewsQ = viewsCount();
@@ -43,6 +49,16 @@ export default async function AdminOrders({
   const viewsTotal = totalRes.count ?? 0;
   const viewsToday = todayRes.count ?? 0;
   const viewsPeriod = periodRes.count ?? 0;
+
+  // ---- Série de visitas para o gráfico (segue o filtro de data) ----
+  const chartWindow = viewsChartWindow(range);
+  const { data: viewRows } = await sb
+    .from(T.pageViews)
+    .select("created_at")
+    .gte("created_at", chartWindow.from.toISOString())
+    .lte("created_at", chartWindow.to.toISOString())
+    .order("created_at", { ascending: true });
+  const viewsChart = buildViewsChart(range, viewRows ?? []);
 
   const all = (orders ?? []) as (OrderRow & {
     paid_at?: string;
@@ -81,16 +97,15 @@ export default async function AdminOrders({
   }
   const series: ChartPoint[] = [];
   for (let i = 0; i < span; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
+    const d = new Date(start.getTime() + i * dayMs);
+    const key = formatDateKeyInTz(d);
     const dayOrders = paid.filter(
-      (o) => (o.paid_at || o.created_at || "").slice(0, 10) === key
+      (o) =>
+        formatDateKeyInTz(o.paid_at || o.created_at || "") === key
     );
+    const { day, month } = getZonedParts(d);
     series.push({
-      label: `${String(d.getDate()).padStart(2, "0")}/${String(
-        d.getMonth() + 1
-      ).padStart(2, "0")}`,
+      label: `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}`,
       revenueCents: dayOrders.reduce((n, o) => n + (o.total_cents ?? 0), 0),
       orders: dayOrders.length,
     });
@@ -180,7 +195,8 @@ export default async function AdminOrders({
             </p>
             <p>
               <strong>Hoje</strong> e <strong>Total</strong> são gerais;{" "}
-              <strong>No período</strong> segue o filtro de data acima.
+              <strong>No período</strong> e o gráfico abaixo seguem o filtro de
+              data acima.
             </p>
           </HelpButton>
         </div>
@@ -202,6 +218,10 @@ export default async function AdminOrders({
           </div>
           <div className="text-xs text-cream/50">no total</div>
         </div>
+      </div>
+
+      <div className="mt-4">
+        <ViewsChart meta={viewsChart} />
       </div>
 
       <div className="mt-5">

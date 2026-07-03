@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BRL } from "@/lib/types";
 import { useCart } from "@/store/cart";
 import { BrandMark } from "@/components/BrandMark";
+import { MercadoPagoPayment } from "@/components/MercadoPagoPayment";
+import { PhoneInput } from "@/components/PhoneInput";
 import { type PayMethod, feeCentsForPct } from "@/lib/payments";
-import { isValidBrazilPhone } from "@/lib/phone";
+import { isValidBrazilPhone, phoneForSubmit } from "@/lib/phone";
 
 interface ShipOption {
   key: string;
@@ -15,13 +18,25 @@ interface ShipOption {
   eta: string;
 }
 
+interface PaymentSession {
+  orderId: string;
+  referenceId: string;
+  preferenceId: string;
+  amount: number;
+  publicKey: string;
+}
+
 const PICKUP_KEY = "pickup";
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const { lines, total, clear } = useCart();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cepLoading, setCepLoading] = useState(false);
+  const [paymentSession, setPaymentSession] = useState<PaymentSession | null>(
+    null
+  );
 
   const [shipOptions, setShipOptions] = useState<ShipOption[]>([]);
   // Padrão: retirar no local (sem custo). Entrega é a opção secundária.
@@ -101,7 +116,7 @@ export default function CheckoutPage() {
       return;
     }
     if (!isValidBrazilPhone(form.phone)) {
-      setError("Telefone inválido. Use DDD + número (ex.: 67 99999-0000).");
+      setError("Telefone inválido. Digite o WhatsApp com DDD ou só o número.");
       return;
     }
     if (!isPickup) {
@@ -122,7 +137,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           customer: {
             name: form.name,
-            phone: form.phone,
+            phone: phoneForSubmit(form.phone),
           },
           address: {
             cep: form.cep,
@@ -143,6 +158,18 @@ export default function CheckoutPage() {
         setError(data.error || "Não foi possível finalizar.");
         return;
       }
+
+      if (data.embedded && data.preferenceId && data.publicKey) {
+        setPaymentSession({
+          orderId: data.orderId,
+          referenceId: data.referenceId,
+          preferenceId: data.preferenceId,
+          amount: data.amount,
+          publicKey: data.publicKey,
+        });
+        return;
+      }
+
       clear();
       window.location.href = data.paymentUrl;
     } catch {
@@ -185,8 +212,9 @@ export default function CheckoutPage() {
             Finalizar pedido
           </h1>
           <p className="mt-1 text-sm text-cream/60">
-            Pagamento pelo Mercado Pago. ⚡ Entrega em até 24h ou retire no local
-            sem custo.
+            Pagamento seguro pelo Mercado Pago, direto nesta página — sem
+            redirecionamento para site externo. ⚡ Entrega em até 24h ou retire
+            no local sem custo.
           </p>
 
           <h2 className="font-display mt-7 text-lg text-gold">Seus dados</h2>
@@ -197,24 +225,11 @@ export default function CheckoutPage() {
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
             />
-            <div>
-              <input
-                className={`${input} ${
-                  form.phone && !isValidBrazilPhone(form.phone)
-                    ? "border-wine-bright/60"
-                    : ""
-                }`}
-                placeholder="WhatsApp (DDD)"
-                inputMode="tel"
-                value={form.phone}
-                onChange={(e) => set("phone", e.target.value)}
-              />
-              {form.phone && !isValidBrazilPhone(form.phone) && (
-                <span className="mt-1 block text-xs text-wine-bright/90">
-                  Número inválido — use DDD + número (ex.: 67 99999-0000).
-                </span>
-              )}
-            </div>
+            <PhoneInput
+              className={input}
+              value={form.phone}
+              onChange={(v) => set("phone", v)}
+            />
           </div>
 
           {/* Forma de entrega */}
@@ -363,6 +378,23 @@ export default function CheckoutPage() {
               {error}
             </p>
           )}
+
+          {paymentSession && (
+            <MercadoPagoPayment
+              publicKey={paymentSession.publicKey}
+              preferenceId={paymentSession.preferenceId}
+              amount={paymentSession.amount}
+              referenceId={paymentSession.referenceId}
+              payMethod={payMethod}
+              onApproved={() => {
+                clear();
+                router.push(
+                  `/checkout/sucesso?order=${paymentSession.referenceId}`
+                );
+              }}
+              onError={(message) => setError(message)}
+            />
+          )}
         </div>
 
         {/* Resumo */}
@@ -408,13 +440,17 @@ export default function CheckoutPage() {
           </div>
           <button
             onClick={submit}
-            disabled={loading}
+            disabled={loading || Boolean(paymentSession)}
             className="btn-gold mt-6 w-full rounded-full py-3.5 text-sm uppercase tracking-wide disabled:opacity-60"
           >
-            {loading ? "Processando…" : "Pagar agora"}
+            {loading
+              ? "Processando…"
+              : paymentSession
+                ? "Conclua o pagamento abaixo"
+                : "Continuar para pagamento"}
           </button>
           <p className="mt-3 text-center text-xs text-cream/45">
-            Pagamento seguro · Mercado Pago
+            Pagamento seguro · Mercado Pago · sem sair do site
           </p>
           <Link
             href="/#produtos"
