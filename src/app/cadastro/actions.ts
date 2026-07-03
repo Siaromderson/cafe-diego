@@ -12,9 +12,24 @@ export interface RegisterResult {
 }
 
 /**
- * Cadastro público de cliente (campanha do Insta → site).
- * Cria/atualiza o cliente e ele aparece direto na aba "Clientes" do painel,
- * mesmo sem ter feito nenhum pedido ainda.
+ * Vincula pedidos anônimos (feitos sem login) ao cliente, casando pelo
+ * telefone. Assim o histórico "Minhas compras" aparece mesmo para pedidos
+ * feitos antes do cadastro. Usa o admin client (ignora RLS de propósito).
+ */
+async function linkOrdersByPhone(customerId: string, phone: string) {
+  if (!phone) return;
+  const sb = getSupabaseAdmin();
+  await sb
+    .from(T.orders)
+    .update({ customer_id: customerId })
+    .eq("customer_phone", phone)
+    .is("customer_id", null);
+}
+
+/**
+ * Cadastro de cliente com senha — cria a conta de acesso e já reivindica os
+ * pedidos anteriores feitos com o mesmo WhatsApp. Depois o cliente entra em
+ * "Minhas compras" (/conta) para acompanhar tudo.
  */
 export async function registerCustomer(
   formData: FormData
@@ -26,6 +41,7 @@ export async function registerCustomer(
   const name = String(formData.get("name") || "").trim();
   const phone = phoneForSubmit(String(formData.get("phone") || "").trim());
   const email = String(formData.get("email") || "").trim().toLowerCase();
+  const password = String(formData.get("password") || "");
 
   if (!name) return { ok: false, error: "Informe seu nome." };
   if (phone && !isValidBrazilPhone(phone)) {
@@ -37,10 +53,16 @@ export async function registerCustomer(
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return { ok: false, error: "Informe um e-mail válido." };
   }
+  if (password.length < 6) {
+    return {
+      ok: false,
+      error: "Crie uma senha com pelo menos 6 caracteres.",
+    };
+  }
 
   const sb = getSupabaseAdmin();
 
-  // Já existe cadastro com esse e-mail? Atualiza os dados e pronto.
+  // Já existe cadastro com esse e-mail? Atualiza os dados e a senha.
   const { data: existing } = await sb
     .from(T.customers)
     .select("id")
@@ -48,24 +70,28 @@ export async function registerCustomer(
     .maybeSingle();
 
   if (existing?.id) {
-    await sb
-      .from(T.customers)
-      .update({ name, phone })
-      .eq("id", existing.id);
+    await sb.from(T.customers).update({ name, phone }).eq("id", existing.id);
+    // Atualiza a senha para o cliente conseguir entrar (id = auth.users.id).
+    await sb.auth.admin.updateUserById(existing.id, { password });
+    await linkOrdersByPhone(existing.id, phone);
     revalidatePath("/admin/clientes");
     return { ok: true };
   }
 
-  // Novo cliente: cria o usuário (gera o id) e grava o cadastro.
+  // Novo cliente: cria o usuário com senha (gera o id) e grava o cadastro.
   try {
     const { data: created, error } = await sb.auth.admin.createUser({
       email,
+      password,
       email_confirm: true,
       user_metadata: { name },
     });
     if (error || !created?.user?.id) {
-      // e-mail provavelmente já tem login mas sem linha em clientes — grava assim mesmo
-      throw error ?? new Error("sem id");
+      return {
+        ok: false,
+        error:
+          "Esse e-mail já tem uma conta. Faça login em vez de se cadastrar.",
+      };
     }
     await sb.from(T.customers).upsert({
       id: created.user.id,
@@ -73,6 +99,7 @@ export async function registerCustomer(
       phone,
       email,
     });
+    await linkOrdersByPhone(created.user.id, phone);
     revalidatePath("/admin/clientes");
     return { ok: true };
   } catch {

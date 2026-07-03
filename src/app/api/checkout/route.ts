@@ -165,6 +165,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Cliente já cadastrado com esse WhatsApp? Vincula o pedido a ele para
+    // aparecer no histórico "Minhas compras" (mesmo sem informar e-mail).
+    if (!customerId && customerPhone) {
+      const { data: existingCust } = await sb
+        .from(T.customers)
+        .select("id")
+        .eq("phone", customerPhone)
+        .maybeSingle();
+      if (existingCust?.id) customerId = existingCust.id;
+    }
+
     const { data: order, error } = await sb
       .from(T.orders)
       .insert({

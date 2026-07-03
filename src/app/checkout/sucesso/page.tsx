@@ -42,6 +42,12 @@ export default async function SuccessPage({
         >
           Voltar à loja
         </Link>
+        <p className="mt-4 text-sm text-cream/60">
+          Já tem conta?{" "}
+          <Link href="/conta" className="text-gold hover:underline">
+            Ver minhas compras
+          </Link>
+        </p>
       </div>
     </main>
   );
