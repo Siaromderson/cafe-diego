@@ -9,6 +9,8 @@ export interface MercadoPagoPaymentProps {
   amount: number;
   referenceId: string;
   payMethod: string;
+  /** E-mail do pagador — quando informado, o Pix já gera o QR sem pedir e-mail. */
+  payerEmail?: string;
   onApproved: () => void;
   onError: (message: string) => void;
 }
@@ -148,6 +150,7 @@ export function MercadoPagoPayment({
   amount,
   referenceId,
   payMethod,
+  payerEmail,
   onApproved,
   onError,
 }: MercadoPagoPaymentProps) {
@@ -172,6 +175,8 @@ export function MercadoPagoPayment({
             initialization={{
               amount,
               preferenceId,
+              // Já preenche o e-mail do pagador para o Pix não pedir de novo.
+              ...(payerEmail ? { payer: { email: payerEmail } } : {}),
             }}
             customization={{
               paymentMethods: paymentMethodsFor(payMethod),

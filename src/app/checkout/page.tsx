@@ -77,6 +77,8 @@ export default function CheckoutPage() {
   const [prefillSource, setPrefillSource] = useState<null | "conta" | "local">(
     null
   );
+  // E-mail da conta (quando logado) para o Pix não pedir e-mail no pagamento.
+  const [accountEmail, setAccountEmail] = useState<string>("");
 
   const [shipOptions, setShipOptions] = useState<ShipOption[]>([]);
   // Padrão: retirar no local (sem custo). Entrega é a opção secundária.
@@ -154,6 +156,7 @@ export default function CheckoutPage() {
           data: { user },
         } = await sb.auth.getUser();
         if (user && !cancelled) {
+          if (user.email) setAccountEmail(user.email);
           const [{ data: customer }, { data: addresses }] = await Promise.all([
             sb
               .from("cafe_diego_customers")
@@ -548,6 +551,12 @@ export default function CheckoutPage() {
               amount={paymentSession.amount}
               referenceId={paymentSession.referenceId}
               payMethod={payMethod}
+              payerEmail={
+                accountEmail ||
+                (phoneForSubmit(form.phone)
+                  ? `${phoneForSubmit(form.phone)}@cliente.cafedofeirantems.com.br`
+                  : undefined)
+              }
               onApproved={() => {
                 clear();
                 router.push(
