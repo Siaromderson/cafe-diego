@@ -190,7 +190,32 @@ export async function processMercadoPagoPayment(opts: {
     throw new Error(`Mercado Pago ${res.status}: ${msg}`);
   }
 
-  return raw as { id?: string | number; status?: string };
+  const r = raw as {
+    id?: string | number;
+    status?: string;
+    status_detail?: string;
+    point_of_interaction?: {
+      transaction_data?: {
+        qr_code?: string;
+        qr_code_base64?: string;
+        ticket_url?: string;
+      };
+    };
+  };
+
+  const tx = r.point_of_interaction?.transaction_data;
+  return {
+    id: r.id,
+    status: r.status,
+    statusDetail: r.status_detail,
+    pix: tx?.qr_code
+      ? {
+          qrCode: tx.qr_code,
+          qrCodeBase64: tx.qr_code_base64 ?? "",
+          ticketUrl: tx.ticket_url ?? "",
+        }
+      : null,
+  };
 }
 
 /** Mapeia o status do Mercado Pago para o status interno do pedido. */

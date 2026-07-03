@@ -1,9 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   env,
   hasMercadoPago,
   hasMercadoPagoEmbedded,
 } from "@/lib/env";
+import {
+  getMercadoPagoPayment,
+  mapMercadoPagoStatus,
+} from "@/lib/mercadopago";
 
 /**
  * Diagnóstico do pagamento — informa (sem expor segredos) se o servidor
@@ -21,7 +25,22 @@ function mask(v: string): string | null {
   return `${clean.slice(0, 6)}…${clean.slice(-4)}`;
 }
 
-export function GET() {
+export async function GET(req: NextRequest) {
+  // Consulta o status de um pagamento específico (usado pela tela do Pix).
+  const paymentId = req.nextUrl.searchParams.get("paymentId");
+  if (paymentId) {
+    if (!hasMercadoPago) {
+      return NextResponse.json({ paid: false, status: "unconfigured" });
+    }
+    const payment = await getMercadoPagoPayment(paymentId);
+    const status = mapMercadoPagoStatus(payment?.status);
+    return NextResponse.json({
+      paid: status === "paid",
+      status,
+      rawStatus: payment?.status ?? null,
+    });
+  }
+
   const accessToken = env.mpAccessToken;
   const publicKey = env.mpPublicKey;
 
