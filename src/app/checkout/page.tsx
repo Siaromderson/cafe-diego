@@ -9,7 +9,9 @@ import { BrandMark } from "@/components/BrandMark";
 import { MercadoPagoPayment } from "@/components/MercadoPagoPayment";
 import { PhoneInput } from "@/components/PhoneInput";
 import { type PayMethod, feeCentsForPct } from "@/lib/payments";
-import { isValidBrazilPhone, phoneForSubmit } from "@/lib/phone";
+import { isValidBrazilPhone, phoneForSubmit, formatPhoneAsYouType } from "@/lib/phone";
+import { hasSupabase } from "@/lib/env";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 interface ShipOption {
   key: string;
@@ -75,6 +77,51 @@ export default function CheckoutPage() {
   });
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Cliente logado: puxa nome, telefone e último endereço do cadastro,
+  // preenchendo só os campos que ainda estão vazios (não sobrescreve o que
+  // a pessoa digitou).
+  useEffect(() => {
+    if (!hasSupabase) return;
+    let cancelled = false;
+
+    (async () => {
+      const sb = supabaseBrowser();
+      const {
+        data: { user },
+      } = await sb.auth.getUser();
+      if (!user || cancelled) return;
+
+      const [{ data: customer }, { data: addresses }] = await Promise.all([
+        sb.from("cafe_diego_customers").select("name, phone").eq("id", user.id).maybeSingle(),
+        sb
+          .from("cafe_diego_addresses")
+          .select("cep, street, number, complement, district, city, reference")
+          .eq("customer_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1),
+      ]);
+      if (cancelled) return;
+
+      const addr = addresses?.[0];
+      setForm((f) => ({
+        ...f,
+        name: f.name || customer?.name || "",
+        phone: f.phone || (customer?.phone ? formatPhoneAsYouType(customer.phone) : ""),
+        cep: f.cep || addr?.cep || "",
+        street: f.street || addr?.street || "",
+        number: f.number || addr?.number || "",
+        complement: f.complement || addr?.complement || "",
+        district: f.district || addr?.district || "",
+        city: f.city || addr?.city || "",
+        reference: f.reference || addr?.reference || "",
+      }));
+    })().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function lookupCep(raw: string) {
     const cep = raw.replace(/\D/g, "");
