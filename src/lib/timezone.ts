@@ -104,6 +104,35 @@ export function formatDateKeyInTz(
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/** Formata data + hora de um instante (timestamptz) no fuso da loja. */
+export function formatDateTimeBR(
+  value: string | Date,
+  timeZone: string = APP_TIMEZONE
+): string {
+  const d = typeof value === "string" ? new Date(value) : value;
+  return d.toLocaleString("pt-BR", { timeZone });
+}
+
+/** Formata só a data de um instante (timestamptz) no fuso da loja. */
+export function formatDateBR(
+  value: string | Date,
+  timeZone: string = APP_TIMEZONE
+): string {
+  const d = typeof value === "string" ? new Date(value) : value;
+  return d.toLocaleDateString("pt-BR", { timeZone });
+}
+
+/**
+ * Formata uma data pura (coluna `date`, ex.: "2026-07-04") como dd/mm/aaaa,
+ * SEM conversão de fuso — senão o dia "escorrega" para o anterior em UTC−4.
+ */
+export function formatPlainDateBR(ymd: string | null | undefined): string {
+  if (!ymd) return "";
+  const m = String(ymd).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  return new Date(ymd).toLocaleDateString("pt-BR", { timeZone: APP_TIMEZONE });
+}
+
 /** Adiciona dias a um instante, preservando o conceito de dia no fuso. */
 export function addDaysInTz(
   date: Date,

@@ -7,6 +7,7 @@ import { T } from "@/lib/tables";
 import { BRL } from "@/lib/types";
 import { BrandMark } from "@/components/BrandMark";
 import { LogoutButton } from "@/components/LogoutButton";
+import { formatDateBR, formatPlainDateBR } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -64,8 +65,7 @@ export default async function AccountPage() {
               <div key={o.id} className="glass rounded-2xl p-5">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs text-cream/50">
-                    #{o.id.slice(0, 8)} ·{" "}
-                    {new Date(o.created_at).toLocaleDateString("pt-BR")}
+                    #{o.id.slice(0, 8)} · {formatDateBR(o.created_at)}
                   </span>
                   <span className={`text-sm font-medium ${st.cls}`}>
                     {st.label}
@@ -83,8 +83,7 @@ export default async function AccountPage() {
                 <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2">
                   {o.delivery_eta && o.status !== "delivered" && (
                     <span className="text-xs text-cream/55">
-                      Entrega até{" "}
-                      {new Date(o.delivery_eta).toLocaleDateString("pt-BR")}
+                      Entrega até {formatPlainDateBR(o.delivery_eta)}
                     </span>
                   )}
                   <span className="ml-auto font-display text-lg font-semibold gold-text">

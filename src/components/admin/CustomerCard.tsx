@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BRL } from "@/lib/types";
 import type { CustomerView } from "@/lib/customers";
 import { DeleteCustomerButton } from "@/components/admin/DeleteCustomerButton";
+import { formatDateBR } from "@/lib/timezone";
 
 const STATUS: Record<string, string> = {
   pending: "Aguardando",
@@ -14,7 +15,7 @@ const STATUS: Record<string, string> = {
 
 function nextLabel(c: CustomerView) {
   if (c.nextPurchase == null || c.daysUntilNext == null) return null;
-  const date = new Date(c.nextPurchase).toLocaleDateString("pt-BR");
+  const date = formatDateBR(c.nextPurchase);
   if (c.daysUntilNext < 0)
     return { text: `Atrasado ${Math.abs(c.daysUntilNext)}d (previsto ${date})`, tone: "red" };
   if (c.daysUntilNext <= 7)
@@ -106,7 +107,7 @@ export function CustomerCard({ c }: { c: CustomerView }) {
                 >
                   <div>
                     <span className="text-cream/80">
-                      {new Date(h.date).toLocaleDateString("pt-BR")}
+                      {formatDateBR(h.date)}
                     </span>
                     <span className="ml-2 text-cream/55">{h.items}</span>
                   </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDateTimeBR } from "@/lib/timezone";
+
 export interface ReportRow {
   id: string;
   created_at: string;
@@ -52,7 +54,7 @@ export function ExportButton({
     const lines = rows.map((r) =>
       [
         r.id.slice(0, 8),
-        new Date(r.created_at).toLocaleString("pt-BR"),
+        formatDateTimeBR(r.created_at),
         r.customer_name,
         r.customer_phone,
         r.customer_email,
