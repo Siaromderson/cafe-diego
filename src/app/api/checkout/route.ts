@@ -213,6 +213,26 @@ export async function POST(req: NextRequest) {
       }))
     );
 
+    // Cliente identificado + entrega: guarda o endereço para pré-preencher o
+    // próximo checkout. Evita duplicar se for igual ao último salvo.
+    if (customerId && !pickup && address?.cep && address?.street) {
+      const { data: last } = await sb
+        .from(T.addresses)
+        .select("cep, street, number")
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const isSame =
+        last &&
+        last.cep === address.cep &&
+        last.street === address.street &&
+        last.number === address.number;
+      if (!isSame) {
+        await sb.from(T.addresses).insert({ customer_id: customerId, ...address });
+      }
+    }
+
     void notifyNewOrder({
       referenceId,
       customerName: customer.name,
