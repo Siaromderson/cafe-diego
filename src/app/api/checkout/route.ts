@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasSupabase, hasNupay, hasMercadoPago, env } from "@/lib/env";
+import { hasSupabase, hasNupay, hasMercadoPago, hasMercadoPagoEmbedded, env } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { getProducts } from "@/lib/products-repo";
 import { createNupayPayment } from "@/lib/nupay";
@@ -11,7 +11,7 @@ import {
   getPaymentMethods,
 } from "@/lib/shipping";
 import { feeCentsForPct } from "@/lib/payments";
-import { isValidBrazilPhone } from "@/lib/phone";
+import { isValidBrazilPhone, phoneForSubmit } from "@/lib/phone";
 import { T } from "@/lib/tables";
 
 interface CheckoutBody {
@@ -57,15 +57,16 @@ export async function POST(req: NextRequest) {
   // E-mail e CPF não são mais pedidos no checkout — ficam opcionais.
   const customerEmail = customer?.email?.trim() || "";
   const customerCpf = customer?.cpf?.trim() || "";
-  if (!customer?.name || !customer?.phone) {
+  const customerPhone = phoneForSubmit(customer?.phone);
+  if (!customer?.name || !customerPhone) {
     return NextResponse.json(
       { error: "Preencha nome e telefone." },
       { status: 400 }
     );
   }
-  if (!isValidBrazilPhone(customer.phone)) {
+  if (!isValidBrazilPhone(customerPhone)) {
     return NextResponse.json(
-      { error: "Telefone inválido. Use DDD + número (ex.: 67 99999-0000)." },
+      { error: "Telefone inválido. Digite o WhatsApp com DDD ou só o número." },
       { status: 400 }
     );
   }
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
           await sb.from(T.customers).upsert({
             id: customerId,
             name: customer.name,
-            phone: customer.phone,
+            phone: customerPhone,
             cpf: customerCpf,
             email: customerEmail,
           });
@@ -163,6 +164,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Cliente já cadastrado com esse WhatsApp? Vincula o pedido a ele para
+    // aparecer no histórico "Minhas compras" (mesmo sem informar e-mail).
+    if (!customerId && customerPhone) {
+      const { data: existingCust } = await sb
+        .from(T.customers)
+        .select("id")
+        .eq("phone", customerPhone)
+        .maybeSingle();
+      if (existingCust?.id) customerId = existingCust.id;
+    }
+
     const { data: order, error } = await sb
       .from(T.orders)
       .insert({
@@ -173,7 +185,7 @@ export async function POST(req: NextRequest) {
         shipping_method: pickup ? PICKUP_KEY : shippingMethod ?? "delivery",
         reference_id: referenceId,
         customer_name: customer.name,
-        customer_phone: customer.phone,
+        customer_phone: customerPhone,
         customer_cpf: customerCpf,
         customer_email: customerEmail,
         address_json: address,
@@ -199,6 +211,26 @@ export async function POST(req: NextRequest) {
         unit_price_cents: l.product.price_cents,
       }))
     );
+
+    // Cliente identificado + entrega: guarda o endereço para pré-preencher o
+    // próximo checkout. Evita duplicar se for igual ao último salvo.
+    if (customerId && !pickup && address?.cep && address?.street) {
+      const { data: last } = await sb
+        .from(T.addresses)
+        .select("cep, street, number")
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const isSame =
+        last &&
+        last.cep === address.cep &&
+        last.street === address.street &&
+        last.number === address.number;
+      if (!isSame) {
+        await sb.from(T.addresses).insert({ customer_id: customerId, ...address });
+      }
+    }
   }
 
   // ---- Pagamento ----
@@ -242,7 +274,7 @@ export async function POST(req: NextRequest) {
         payer: {
           name: customer.name,
           email: customerEmail,
-          phone: customer.phone,
+          phone: customerPhone,
           document: customerCpf,
         },
         items: paymentItems.map((i) => ({
@@ -265,7 +297,13 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         orderId,
-        paymentUrl: preference.paymentUrl,
+        referenceId,
+        preferenceId: preference.preferenceId,
+        amount: totalCents / 100,
+        publicKey: hasMercadoPagoEmbedded ? env.mpPublicKey : undefined,
+        embedded: hasMercadoPagoEmbedded,
+        // Fallback: redirect externo quando a chave pública não está configurada.
+        paymentUrl: hasMercadoPagoEmbedded ? undefined : preference.paymentUrl,
       });
     } catch (e) {
       return NextResponse.json(
@@ -295,7 +333,7 @@ export async function POST(req: NextRequest) {
         name: customer.name,
         document: customerCpf,
         email: customerEmail,
-        phone: customer.phone,
+        phone: customerPhone,
         ip,
       },
       items: [

@@ -31,6 +31,7 @@ export default async function AdminConfig() {
             </li>
             <li>
               <strong>WhatsApp:</strong> número de contato (só números, com DDD).
+              Também é o número que recebe o aviso automático de novos pedidos.
             </li>
           </ul>
         </HelpButton>

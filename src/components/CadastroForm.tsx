@@ -2,15 +2,23 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { registerCustomer } from "@/app/cadastro/actions";
+import { PhoneInput } from "@/components/PhoneInput";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 const field =
   "w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3 text-cream placeholder:text-cream/35 outline-none transition-colors focus:border-gold/60";
 
 export function CadastroForm() {
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -18,8 +26,26 @@ export function CadastroForm() {
     const data = new FormData(e.currentTarget);
     start(async () => {
       const res = await registerCustomer(data);
-      if (res.ok) setDone(true);
-      else setError(res.error ?? "Não foi possível concluir o cadastro.");
+      if (!res.ok) {
+        setError(res.error ?? "Não foi possível concluir o cadastro.");
+        return;
+      }
+      // Já entra na conta e leva o cliente para "Minhas compras".
+      try {
+        const sb = supabaseBrowser();
+        const { error: signInErr } = await sb.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+        if (signInErr) {
+          setDone(true);
+          return;
+        }
+        router.push("/conta");
+        router.refresh();
+      } catch {
+        setDone(true);
+      }
     });
   };
 
@@ -41,14 +67,13 @@ export function CadastroForm() {
           Cadastro feito!
         </h2>
         <p className="mt-2 text-cream/65">
-          Pronto, você está na nossa lista. Em breve a gente manda as novidades e
-          ofertas do Café do Feirante.
+          Sua conta está pronta. Entre para acompanhar suas compras.
         </p>
         <Link
-          href="/#produtos"
+          href="/login"
           className="btn-gold mt-7 inline-block rounded-full px-8 py-3 text-sm uppercase tracking-wide"
         >
-          Ver os cafés
+          Fazer login
         </Link>
       </div>
     );
@@ -64,6 +89,8 @@ export function CadastroForm() {
           name="name"
           required
           placeholder="Seu nome"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           className={`mt-1.5 ${field}`}
         />
       </div>
@@ -71,12 +98,12 @@ export function CadastroForm() {
         <label className="text-xs uppercase tracking-widest text-cream/55">
           WhatsApp
         </label>
-        <input
-          name="phone"
-          inputMode="tel"
-          placeholder="(67) 99999-0000"
+        <PhoneInput
+          value={phone}
+          onChange={setPhone}
           className={`mt-1.5 ${field}`}
         />
+        <input type="hidden" name="phone" value={phone} />
       </div>
       <div>
         <label className="text-xs uppercase tracking-widest text-cream/55">
@@ -87,6 +114,23 @@ export function CadastroForm() {
           type="email"
           required
           placeholder="voce@email.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={`mt-1.5 ${field}`}
+        />
+      </div>
+      <div>
+        <label className="text-xs uppercase tracking-widest text-cream/55">
+          Senha
+        </label>
+        <input
+          name="password"
+          type="password"
+          required
+          minLength={6}
+          placeholder="mínimo 6 caracteres"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           className={`mt-1.5 ${field}`}
         />
       </div>
@@ -102,10 +146,16 @@ export function CadastroForm() {
         disabled={pending}
         className="btn-gold w-full rounded-full px-6 py-3.5 text-sm uppercase tracking-wide disabled:opacity-60"
       >
-        {pending ? "Enviando…" : "Quero me cadastrar"}
+        {pending ? "Criando conta…" : "Criar minha conta"}
       </button>
+      <p className="text-center text-xs text-cream/45">
+        Já tem conta?{" "}
+        <Link href="/login" className="text-gold hover:underline">
+          Entrar
+        </Link>
+      </p>
       <p className="text-center text-xs text-cream/40">
-        Seus dados ficam só com a gente, para avisar de novidades e ofertas.
+        Com a conta você acompanha seus pedidos e recebe novidades e ofertas.
       </p>
     </form>
   );

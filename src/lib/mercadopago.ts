@@ -2,13 +2,11 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { env } from "./env";
 
 /**
- * Integração com o Mercado Pago — Checkout Pro.
- * Cria uma "preference" e devolve a URL (`init_point`) para a qual o cliente
- * é redirecionado; o cliente escolhe Pix / cartão na tela do Mercado Pago.
- * Doc: POST /checkout/preferences  ·  GET /v1/payments/{id}
+ * Integração com o Mercado Pago — Checkout Bricks (pagamento na própria loja).
+ * Cria uma "preference" no servidor e o cliente paga via Payment Brick no site.
+ * Doc: POST /checkout/preferences  ·  POST /v1/payments  ·  GET /v1/payments/{id}
  *
- * O padrão é o mesmo do NuPay: criar pagamento → redirecionar → receber
- * o status pelo webhook (`/api/webhooks/mercadopago`).
+ * O status final continua sendo reconciliado pelo webhook (`/api/webhooks/mercadopago`).
  */
 
 export interface MpItem {
@@ -158,6 +156,66 @@ export async function getMercadoPagoPayment(paymentId: string) {
     headers: headers(),
   });
   return res.json().catch(() => ({}));
+}
+
+/** Processa o pagamento enviado pelo Payment Brick (Pix, cartão, saldo). */
+export async function processMercadoPagoPayment(opts: {
+  formData: Record<string, unknown>;
+  referenceId: string;
+  baseUrl?: string;
+}) {
+  const base = (opts.baseUrl || env.siteUrl).replace(/\/+$/, "");
+  const body = {
+    ...opts.formData,
+    external_reference: opts.referenceId,
+    notification_url: `${base}/api/webhooks/mercadopago`,
+    statement_descriptor: "CAFEDOFEIRANTE",
+  };
+
+  const res = await fetch(`${env.mpBase}/v1/payments`, {
+    method: "POST",
+    headers: headers(opts.referenceId),
+    body: JSON.stringify(body),
+  });
+
+  const raw = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg =
+      typeof raw === "object" &&
+      raw !== null &&
+      "message" in raw &&
+      typeof (raw as { message: unknown }).message === "string"
+        ? (raw as { message: string }).message
+        : JSON.stringify(raw).slice(0, 300);
+    throw new Error(`Mercado Pago ${res.status}: ${msg}`);
+  }
+
+  const r = raw as {
+    id?: string | number;
+    status?: string;
+    status_detail?: string;
+    point_of_interaction?: {
+      transaction_data?: {
+        qr_code?: string;
+        qr_code_base64?: string;
+        ticket_url?: string;
+      };
+    };
+  };
+
+  const tx = r.point_of_interaction?.transaction_data;
+  return {
+    id: r.id,
+    status: r.status,
+    statusDetail: r.status_detail,
+    pix: tx?.qr_code
+      ? {
+          qrCode: tx.qr_code,
+          qrCodeBase64: tx.qr_code_base64 ?? "",
+          ticketUrl: tx.ticket_url ?? "",
+        }
+      : null,
+  };
 }
 
 /** Mapeia o status do Mercado Pago para o status interno do pedido. */

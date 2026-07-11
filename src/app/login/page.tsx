@@ -28,8 +28,8 @@ export default function LoginPage() {
         email: email.trim(),
         password,
       });
-      setLoading(false);
       if (error) {
+        setLoading(false);
         console.error("[login] erro do supabase:", error);
         setError(
           error.message === "Invalid login credentials"
@@ -38,7 +38,14 @@ export default function LoginPage() {
         );
         return;
       }
-      router.push("/admin");
+      // Admin vai para o painel; cliente vai para "Minhas compras".
+      const { data: adminRow } = await sb
+        .from("cafe_diego_admins")
+        .select("email")
+        .eq("email", email.trim().toLowerCase())
+        .maybeSingle();
+      setLoading(false);
+      router.push(adminRow ? "/admin" : "/conta");
       router.refresh();
     } catch (err) {
       setLoading(false);
@@ -62,7 +69,7 @@ export default function LoginPage() {
           Entrar
         </h1>
         <p className="mt-1 text-sm text-cream/60">
-          Acesse o painel com seu e-mail e senha.
+          Acesse sua conta para ver suas compras.
         </p>
 
         <input
@@ -90,9 +97,15 @@ export default function LoginPage() {
           {loading ? "Entrando…" : "Entrar"}
         </button>
 
+        <p className="mt-5 text-center text-xs text-cream/55">
+          Ainda não tem conta?{" "}
+          <Link href="/cadastro" className="text-gold hover:underline">
+            Cadastre-se
+          </Link>
+        </p>
         <Link
           href="/"
-          className="mt-5 block text-center text-xs text-cream/50 hover:text-gold"
+          className="mt-3 block text-center text-xs text-cream/50 hover:text-gold"
         >
           ← voltar à loja
         </Link>

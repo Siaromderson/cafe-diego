@@ -1,5 +1,13 @@
 /** Intervalos de data para o painel (dashboard, relatórios). */
 
+import {
+  addDaysInTz,
+  endOfDayInTz,
+  formatDateBR,
+  parseDateInputInTz,
+  startOfDayInTz,
+} from "@/lib/timezone";
+
 export type RangeKey =
   | "today"
   | "yesterday"
@@ -24,17 +32,6 @@ export const RANGE_OPTIONS: { key: RangeKey; label: string }[] = [
   { key: "custom", label: "Personalizado" },
 ];
 
-function startOfDay(d: Date) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-function endOfDay(d: Date) {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
-}
-
 /** Resolve a faixa de datas a partir dos search params. */
 export function resolveRange(params: {
   range?: string;
@@ -46,43 +43,47 @@ export function resolveRange(params: {
 
   switch (key) {
     case "today":
-      return { key, from: startOfDay(now), to: endOfDay(now), label: "Hoje" };
-    case "yesterday": {
-      const y = new Date(now);
-      y.setDate(now.getDate() - 1);
       return {
         key,
-        from: startOfDay(y),
-        to: endOfDay(y),
+        from: startOfDayInTz(now),
+        to: endOfDayInTz(now),
+        label: "Hoje",
+      };
+    case "yesterday": {
+      const y = addDaysInTz(now, -1);
+      return {
+        key,
+        from: startOfDayInTz(y),
+        to: endOfDayInTz(y),
         label: "Ontem",
       };
     }
     case "week": {
-      const f = new Date(now);
-      f.setDate(now.getDate() - 6);
+      const f = addDaysInTz(now, -6);
       return {
         key,
-        from: startOfDay(f),
-        to: endOfDay(now),
+        from: startOfDayInTz(f),
+        to: endOfDayInTz(now),
         label: "Últimos 7 dias",
       };
     }
     case "month": {
-      const f = new Date(now);
-      f.setDate(now.getDate() - 29);
+      const f = addDaysInTz(now, -29);
       return {
         key,
-        from: startOfDay(f),
-        to: endOfDay(now),
+        from: startOfDayInTz(f),
+        to: endOfDayInTz(now),
         label: "Últimos 30 dias",
       };
     }
     case "all":
       return { key, from: null, to: null, label: "Todo o período" };
     case "custom": {
-      const from = params.from ? startOfDay(new Date(params.from)) : null;
-      const to = params.to ? endOfDay(new Date(params.to)) : null;
-      const fmt = (d: Date) => d.toLocaleDateString("pt-BR");
+      const from = params.from ? parseDateInputInTz(params.from) : null;
+      const to = params.to
+        ? endOfDayInTz(parseDateInputInTz(params.to))
+        : null;
+      const fmt = (d: Date) => formatDateBR(d);
       const label =
         from && to
           ? `${fmt(from)} – ${fmt(to)}`

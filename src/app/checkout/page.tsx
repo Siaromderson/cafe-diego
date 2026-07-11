@@ -2,11 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BRL } from "@/lib/types";
 import { useCart } from "@/store/cart";
 import { BrandMark } from "@/components/BrandMark";
+import { MercadoPagoPayment } from "@/components/MercadoPagoPayment";
+import { PhoneInput } from "@/components/PhoneInput";
 import { type PayMethod, feeCentsForPct } from "@/lib/payments";
-import { isValidBrazilPhone } from "@/lib/phone";
+import { isValidBrazilPhone, phoneForSubmit, formatPhoneAsYouType } from "@/lib/phone";
+import { hasSupabase } from "@/lib/env";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 interface ShipOption {
   key: string;
@@ -15,13 +20,65 @@ interface ShipOption {
   eta: string;
 }
 
+interface PaymentSession {
+  orderId: string;
+  referenceId: string;
+  preferenceId: string;
+  amount: number;
+  publicKey: string;
+}
+
 const PICKUP_KEY = "pickup";
+const BUYER_KEY = "cafe_diego_buyer";
+
+interface SavedBuyer {
+  name: string;
+  phone: string;
+  cep: string;
+  street: string;
+  number: string;
+  complement: string;
+  district: string;
+  city: string;
+  reference: string;
+  shipMethod?: string;
+}
+
+function readSavedBuyer(): SavedBuyer | null {
+  try {
+    const raw = localStorage.getItem(BUYER_KEY);
+    if (!raw) return null;
+    const b = JSON.parse(raw);
+    return b && typeof b === "object" ? (b as SavedBuyer) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveBuyer(b: SavedBuyer) {
+  try {
+    localStorage.setItem(BUYER_KEY, JSON.stringify(b));
+  } catch {
+    /* ignora (modo privado, etc.) */
+  }
+}
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const { lines, total, clear } = useCart();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cepLoading, setCepLoading] = useState(false);
+  const [paymentSession, setPaymentSession] = useState<PaymentSession | null>(
+    null
+  );
+  // De onde vieram os dados pré-preenchidos: "conta" (login) ou "local"
+  // (última compra neste aparelho). Serve só para mostrar o aviso.
+  const [prefillSource, setPrefillSource] = useState<null | "conta" | "local">(
+    null
+  );
+  // E-mail da conta (quando logado) para o Pix não pedir e-mail no pagamento.
+  const [accountEmail, setAccountEmail] = useState<string>("");
 
   const [shipOptions, setShipOptions] = useState<ShipOption[]>([]);
   // Padrão: retirar no local (sem custo). Entrega é a opção secundária.
@@ -60,6 +117,96 @@ export default function CheckoutPage() {
   });
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Pré-preenche os dados: cliente logado puxa do cadastro; senão, usa o que
+  // foi salvo neste aparelho na última compra. Só preenche campos vazios (não
+  // sobrescreve o que a pessoa já digitou) e sempre dá pra alterar.
+  useEffect(() => {
+    let cancelled = false;
+
+    const fill = (data: Partial<SavedBuyer>, source: "conta" | "local") => {
+      if (cancelled) return;
+      let usou = false;
+      setForm((f) => {
+        const next = {
+          ...f,
+          name: f.name || data.name || "",
+          phone:
+            f.phone ||
+            (data.phone ? formatPhoneAsYouType(data.phone) : ""),
+          cep: f.cep || data.cep || "",
+          street: f.street || data.street || "",
+          number: f.number || data.number || "",
+          complement: f.complement || data.complement || "",
+          district: f.district || data.district || "",
+          city: f.city || data.city || "",
+          reference: f.reference || data.reference || "",
+        };
+        usou = next.name !== "" || next.phone !== "";
+        return next;
+      });
+      if (data.shipMethod) setShipMethod((cur) => cur || data.shipMethod!);
+      if (usou) setPrefillSource(source);
+    };
+
+    (async () => {
+      if (hasSupabase) {
+        const sb = supabaseBrowser();
+        const {
+          data: { user },
+        } = await sb.auth.getUser();
+        if (user && !cancelled) {
+          if (user.email) setAccountEmail(user.email);
+          const [{ data: customer }, { data: addresses }] = await Promise.all([
+            sb
+              .from("cafe_diego_customers")
+              .select("name, phone")
+              .eq("id", user.id)
+              .maybeSingle(),
+            sb
+              .from("cafe_diego_addresses")
+              .select(
+                "cep, street, number, complement, district, city, reference"
+              )
+              .eq("customer_id", user.id)
+              .order("created_at", { ascending: false })
+              .limit(1),
+          ]);
+          const addr = addresses?.[0] ?? {};
+          fill({ name: customer?.name, phone: customer?.phone, ...addr }, "conta");
+          return;
+        }
+      }
+      // Sem login: usa os dados salvos neste dispositivo (compra anterior).
+      const saved = readSavedBuyer();
+      if (saved) fill(saved, "local");
+    })().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Limpa os campos pré-preenchidos (quando a pessoa quer usar outros dados).
+  function clearPrefill() {
+    setForm({
+      name: "",
+      phone: "",
+      cep: "",
+      street: "",
+      number: "",
+      complement: "",
+      district: "",
+      city: "",
+      reference: "",
+    });
+    setPrefillSource(null);
+    try {
+      localStorage.removeItem(BUYER_KEY);
+    } catch {
+      /* ignora */
+    }
+  }
 
   async function lookupCep(raw: string) {
     const cep = raw.replace(/\D/g, "");
@@ -101,7 +248,7 @@ export default function CheckoutPage() {
       return;
     }
     if (!isValidBrazilPhone(form.phone)) {
-      setError("Telefone inválido. Use DDD + número (ex.: 67 99999-0000).");
+      setError("Telefone inválido. Digite o WhatsApp com DDD ou só o número.");
       return;
     }
     if (!isPickup) {
@@ -122,7 +269,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           customer: {
             name: form.name,
-            phone: form.phone,
+            phone: phoneForSubmit(form.phone),
           },
           address: {
             cep: form.cep,
@@ -143,6 +290,32 @@ export default function CheckoutPage() {
         setError(data.error || "Não foi possível finalizar.");
         return;
       }
+
+      // Guarda os dados neste aparelho para agilizar a próxima compra.
+      saveBuyer({
+        name: form.name,
+        phone: phoneForSubmit(form.phone),
+        cep: form.cep,
+        street: form.street,
+        number: form.number,
+        complement: form.complement,
+        district: form.district,
+        city: form.city,
+        reference: form.reference,
+        shipMethod,
+      });
+
+      if (data.embedded && data.preferenceId && data.publicKey) {
+        setPaymentSession({
+          orderId: data.orderId,
+          referenceId: data.referenceId,
+          preferenceId: data.preferenceId,
+          amount: data.amount,
+          publicKey: data.publicKey,
+        });
+        return;
+      }
+
       clear();
       window.location.href = data.paymentUrl;
     } catch {
@@ -185,11 +358,31 @@ export default function CheckoutPage() {
             Finalizar pedido
           </h1>
           <p className="mt-1 text-sm text-cream/60">
-            Pagamento pelo Mercado Pago. ⚡ Entrega em até 24h ou retire no local
-            sem custo.
+            Pagamento seguro pelo Mercado Pago, direto nesta página — sem
+            redirecionamento para site externo. ⚡ Entrega em até 24h ou retire
+            no local sem custo.
           </p>
 
-          <h2 className="font-display mt-7 text-lg text-gold">Seus dados</h2>
+          <div className="mt-7 flex items-center justify-between gap-3">
+            <h2 className="font-display text-lg text-gold">Seus dados</h2>
+            {prefillSource && (
+              <button
+                type="button"
+                onClick={clearPrefill}
+                className="text-xs text-cream/55 underline underline-offset-2 hover:text-gold"
+              >
+                Usar outros dados
+              </button>
+            )}
+          </div>
+          {prefillSource && (
+            <p className="mt-2 rounded-xl border border-gold/25 bg-gold/10 px-4 py-2.5 text-xs text-cream/80">
+              {prefillSource === "conta"
+                ? "Preenchemos com os dados da sua conta. "
+                : "Preenchemos com os dados da sua última compra. "}
+              Confira e altere se precisar.
+            </p>
+          )}
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <input
               className={input}
@@ -197,24 +390,11 @@ export default function CheckoutPage() {
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
             />
-            <div>
-              <input
-                className={`${input} ${
-                  form.phone && !isValidBrazilPhone(form.phone)
-                    ? "border-wine-bright/60"
-                    : ""
-                }`}
-                placeholder="WhatsApp (DDD)"
-                inputMode="tel"
-                value={form.phone}
-                onChange={(e) => set("phone", e.target.value)}
-              />
-              {form.phone && !isValidBrazilPhone(form.phone) && (
-                <span className="mt-1 block text-xs text-wine-bright/90">
-                  Número inválido — use DDD + número (ex.: 67 99999-0000).
-                </span>
-              )}
-            </div>
+            <PhoneInput
+              className={input}
+              value={form.phone}
+              onChange={(v) => set("phone", v)}
+            />
           </div>
 
           {/* Forma de entrega */}
@@ -363,6 +543,29 @@ export default function CheckoutPage() {
               {error}
             </p>
           )}
+
+          {paymentSession && (
+            <MercadoPagoPayment
+              publicKey={paymentSession.publicKey}
+              preferenceId={paymentSession.preferenceId}
+              amount={paymentSession.amount}
+              referenceId={paymentSession.referenceId}
+              payMethod={payMethod}
+              payerEmail={
+                accountEmail ||
+                (phoneForSubmit(form.phone)
+                  ? `${phoneForSubmit(form.phone)}@cliente.cafedofeirantems.com.br`
+                  : undefined)
+              }
+              onApproved={() => {
+                clear();
+                router.push(
+                  `/checkout/sucesso?order=${paymentSession.referenceId}`
+                );
+              }}
+              onError={(message) => setError(message)}
+            />
+          )}
         </div>
 
         {/* Resumo */}
@@ -408,13 +611,17 @@ export default function CheckoutPage() {
           </div>
           <button
             onClick={submit}
-            disabled={loading}
+            disabled={loading || Boolean(paymentSession)}
             className="btn-gold mt-6 w-full rounded-full py-3.5 text-sm uppercase tracking-wide disabled:opacity-60"
           >
-            {loading ? "Processando…" : "Pagar agora"}
+            {loading
+              ? "Processando…"
+              : paymentSession
+                ? "Conclua o pagamento abaixo"
+                : "Continuar para pagamento"}
           </button>
           <p className="mt-3 text-center text-xs text-cream/45">
-            Pagamento seguro · Mercado Pago
+            Pagamento seguro · Mercado Pago · sem sair do site
           </p>
           <Link
             href="/#produtos"

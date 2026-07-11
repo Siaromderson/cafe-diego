@@ -7,6 +7,12 @@ export const env = {
   nupayToken: process.env.NUPAY_MERCHANT_TOKEN ?? "",
   mpBase: process.env.MERCADOPAGO_BASE_URL ?? "https://api.mercadopago.com",
   mpAccessToken: process.env.MERCADOPAGO_ACCESS_TOKEN ?? "",
+  // Aceita as duas formas: `MERCADOPAGO_PUBLIC_KEY` (lida em runtime, sem a
+  // pegadinha de build do prefixo NEXT_PUBLIC_) ou `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`.
+  mpPublicKey:
+    process.env.MERCADOPAGO_PUBLIC_KEY ??
+    process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY ??
+    "",
   mpWebhookSecret: process.env.MERCADOPAGO_WEBHOOK_SECRET ?? "",
   // UAZAPI (envio de WhatsApp). uazapiUrl = host da sua instância; uazapiToken
   // = token da instância. uazapiNotify = número que recebe o aviso de venda
@@ -22,5 +28,9 @@ export const hasSupabase = Boolean(env.supabaseUrl && env.supabaseAnon);
 export const hasNupay = Boolean(env.nupayKey && env.nupayToken);
 /** Quando o Access Token do Mercado Pago existe, o checkout usa pagamento real. */
 export const hasMercadoPago = Boolean(env.mpAccessToken);
+/** Pagamento embutido (Brick) exige também a chave pública. */
+export const hasMercadoPagoEmbedded = Boolean(
+  env.mpAccessToken && env.mpPublicKey
+);
 /** Envio de WhatsApp via UAZAPI só liga quando host e token estão presentes. */
 export const hasUazapi = Boolean(env.uazapiUrl && env.uazapiToken);

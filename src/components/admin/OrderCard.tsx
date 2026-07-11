@@ -2,6 +2,7 @@ import { BRL } from "@/lib/types";
 import { OrderStatus } from "./OrderStatus";
 import { ConfirmButton } from "./ConfirmButton";
 import { cancelOrder, deleteOrder } from "@/app/admin/actions";
+import { formatDateTimeBR, formatPlainDateBR } from "@/lib/timezone";
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   pending: {
@@ -71,7 +72,7 @@ export function OrderCard({ o }: { o: OrderRow }) {
               #{o.id.slice(0, 8)}
             </span>
             <span className="text-xs text-cream/40">
-              {new Date(o.created_at).toLocaleString("pt-BR")}
+              {formatDateTimeBR(o.created_at)}
             </span>
           </div>
           <p className="font-display mt-1.5 text-lg text-cream">
@@ -103,8 +104,7 @@ export function OrderCard({ o }: { o: OrderRow }) {
         <div>
           <p className="text-xs uppercase tracking-widest text-cream/45">
             Entrega{" "}
-            {o.delivery_eta &&
-              `· até ${new Date(o.delivery_eta).toLocaleDateString("pt-BR")}`}
+            {o.delivery_eta && `· até ${formatPlainDateBR(o.delivery_eta)}`}
           </p>
           <p className="mt-1 text-sm text-cream/80">
             {addr.street}, {addr.number}
