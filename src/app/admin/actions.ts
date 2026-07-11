@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { getSupabaseServer, getSupabaseAdmin } from "@/lib/supabase/server";
 import { getIsAdmin } from "@/lib/auth";
 import { T } from "@/lib/tables";
+import { hasUazapi } from "@/lib/env";
+import { sendTestToStore } from "@/lib/whatsapp";
+import { whatsappDisplay } from "@/lib/content-data";
 
 const BUCKET = "produtos";
 
@@ -150,6 +153,43 @@ export async function moveProduct(id: string, dir: "up" | "down") {
   );
   revalidatePath("/admin/produtos");
   revalidatePath("/");
+}
+
+/**
+ * Dispara uma mensagem de teste no WhatsApp da loja (botão do admin).
+ * Retorna um resultado amigável para a UI mostrar sucesso/erro.
+ */
+export async function sendTestWhatsapp(): Promise<{
+  ok: boolean;
+  message: string;
+}> {
+  if (!(await getIsAdmin())) return { ok: false, message: "Não autorizado." };
+  if (!hasUazapi) {
+    return {
+      ok: false,
+      message:
+        "UAZAPI não configurada. Defina UAZAPI_URL e UAZAPI_TOKEN no servidor e reinicie.",
+    };
+  }
+
+  const r = await sendTestToStore();
+  if (r.ok) {
+    const dest = r.to ? ` para ${whatsappDisplay(r.to)}` : "";
+    return {
+      ok: true,
+      message: `Mensagem de teste enviada${dest}. Confira o WhatsApp.`,
+    };
+  }
+
+  const detail =
+    r.error ??
+    (r.raw ? JSON.stringify(r.raw).slice(0, 200) : "erro desconhecido");
+  return {
+    ok: false,
+    message: `Falha ao enviar${
+      r.status ? ` (HTTP ${r.status})` : ""
+    }: ${detail}`,
+  };
 }
 
 export async function saveSetting(key: string, value: string) {

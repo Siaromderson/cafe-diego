@@ -1,10 +1,12 @@
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { T } from "@/lib/tables";
+import { hasUazapi } from "@/lib/env";
 import { SettingField } from "@/components/admin/SettingField";
 import { ToggleField } from "@/components/admin/ToggleField";
 import { HelpButton } from "@/components/admin/HelpButton";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
-import { clearAllOrders } from "@/app/admin/actions";
+import { TestWhatsappButton } from "@/components/admin/TestWhatsappButton";
+import { clearAllOrders, sendTestWhatsapp } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -122,6 +124,47 @@ export default async function AdminConfig() {
           hint="Ex: 4,5"
           value={map.get("fee_credit_pct") ?? "0"}
         />
+      </div>
+
+      <div className="flex items-center gap-2 pt-4">
+        <h2 className="font-display text-xl text-gold">
+          Aviso de venda no WhatsApp
+        </h2>
+        <HelpButton title="Aviso automático de venda no WhatsApp">
+          <p>
+            Quando um pedido é <strong>pago</strong>, a loja recebe um aviso no
+            WhatsApp com o número do pedido, cliente, total e itens.
+          </p>
+          <p>
+            A mensagem vai para o <strong>WhatsApp configurado acima</strong>{" "}
+            (ou para o número dedicado <code>UAZAPI_NOTIFY_NUMBER</code>, se
+            definido no servidor). Precisa da UAZAPI configurada
+            (<code>UAZAPI_URL</code> e <code>UAZAPI_TOKEN</code>).
+          </p>
+          <p>
+            Use <strong>Enviar teste</strong> para conferir se está chegando.
+          </p>
+        </HelpButton>
+      </div>
+      <div className="rounded-2xl border border-gold/20 bg-gold/5 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="font-medium text-cream">
+              Integração:{" "}
+              {hasUazapi ? (
+                <span className="text-gold">conectada ✓</span>
+              ) : (
+                <span className="text-wine-bright">não configurada</span>
+              )}
+            </p>
+            <p className="mt-1 text-sm text-cream/60">
+              {hasUazapi
+                ? "Envia um WhatsApp de teste para o número da loja."
+                : "Defina UAZAPI_URL e UAZAPI_TOKEN no servidor e reinicie para ligar."}
+            </p>
+          </div>
+          <TestWhatsappButton action={sendTestWhatsapp} />
+        </div>
       </div>
 
       <div className="flex items-center gap-2 pt-6">

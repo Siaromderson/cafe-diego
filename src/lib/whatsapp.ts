@@ -132,3 +132,23 @@ export async function notifyStoreOrderPaid(
 
   return sendWhatsappText(storeNumber, text);
 }
+
+/**
+ * Envia uma mensagem de teste para o número da loja — usado pelo botão
+ * "Enviar teste" no admin. Devolve também o destino resolvido, para a UI
+ * mostrar para onde foi. Não lança.
+ */
+export async function sendTestToStore(): Promise<
+  WhatsappResult & { to?: string }
+> {
+  if (!hasUazapi) return { ok: false, error: "UAZAPI não configurada" };
+  const to = await resolveStoreNumber();
+  if (!to) return { ok: false, error: "sem número da loja configurado" };
+  const r = await sendWhatsappText(
+    to,
+    "✅ *Café do Feirante* — teste de integração.\n\n" +
+      "Se você recebeu esta mensagem, os avisos de venda no WhatsApp estão " +
+      "funcionando! 🎉☕"
+  );
+  return { ...r, to };
+}
