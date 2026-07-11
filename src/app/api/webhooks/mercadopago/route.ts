@@ -7,6 +7,7 @@ import {
   isValidSignature,
 } from "@/lib/mercadopago";
 import { T } from "@/lib/tables";
+import { notifyStoreOrderPaid } from "@/lib/whatsapp";
 
 /**
  * Webhook de notificações do Mercado Pago.
@@ -68,12 +69,20 @@ export async function POST(req: NextRequest) {
   };
   if (status === "paid") update.paid_at = new Date().toISOString();
 
-  // idempotente: não rebaixa um pedido já pago
-  await sb
+  // idempotente: não rebaixa um pedido já pago. O select() retorna a linha
+  // alterada — vazio significa que já estava paga (evita aviso duplicado).
+  const { data: changed } = await sb
     .from(T.orders)
     .update(update)
     .match({ reference_id: referenceId })
-    .neq("status", "paid");
+    .neq("status", "paid")
+    .select("id, reference_id, customer_name, customer_phone, total_cents, shipping_method");
+
+  const paidNow = changed?.[0];
+  if (status === "paid" && paidNow) {
+    // Aviso no WhatsApp da loja. Não pode quebrar o webhook: sempre 200.
+    await notifyStoreOrderPaid(paidNow).catch(() => {});
+  }
 
   return NextResponse.json({ ok: true });
 }

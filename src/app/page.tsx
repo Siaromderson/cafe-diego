@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/Hero";
 import { ProductCard } from "@/components/ProductCard";
+import { GrindGuide } from "@/components/GrindGuide";
 import { CartDrawer } from "@/components/CartDrawer";
 import { Footer } from "@/components/Footer";
 import { getProducts } from "@/lib/products-repo";
@@ -32,6 +33,9 @@ export default async function Home() {
           ))}
         </div>
       </section>
+
+      {/* Moagem ideal por método */}
+      <GrindGuide />
 
       {/* História */}
       <section id="historia" className="mx-auto max-w-5xl px-6 py-20">

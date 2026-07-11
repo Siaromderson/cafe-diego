@@ -7,6 +7,7 @@ import { useCart } from "@/store/cart";
 
 const LINKS = [
   { href: "/#produtos", label: "Produtos" },
+  { href: "/#moagem", label: "Moagem" },
   { href: "/#historia", label: "A História" },
   { href: "/#entrega", label: "Entrega" },
 ];

@@ -3,6 +3,7 @@ import { hasSupabase } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { mapNupayStatus } from "@/lib/nupay";
 import { T } from "@/lib/tables";
+import { notifyStoreOrderPaid } from "@/lib/whatsapp";
 
 /**
  * Webhook de status da NuPay.
@@ -43,8 +44,20 @@ export async function POST(req: NextRequest) {
   if (pspReferenceId) update.payment_ref = pspReferenceId;
   if (status === "paid") update.paid_at = new Date().toISOString();
 
-  // idempotente: só atualiza se ainda não estiver no estado final
-  await sb.from(T.orders).update(update).match(match).neq("status", "paid");
+  // idempotente: só atualiza se ainda não estiver no estado final. O select()
+  // retorna a linha alterada — vazio = já estava paga (evita aviso duplicado).
+  const { data: changed } = await sb
+    .from(T.orders)
+    .update(update)
+    .match(match)
+    .neq("status", "paid")
+    .select("id, reference_id, customer_name, customer_phone, total_cents, shipping_method");
+
+  const paidNow = changed?.[0];
+  if (status === "paid" && paidNow) {
+    // Aviso no WhatsApp da loja. Não pode quebrar o webhook: sempre 200.
+    await notifyStoreOrderPaid(paidNow).catch(() => {});
+  }
 
   return NextResponse.json({ ok: true });
 }

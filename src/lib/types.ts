@@ -1,5 +1,8 @@
 export type ProductType = "grao" | "moido";
 
+/** Nível na "Pirâmide do Café" (topo = melhor). */
+export type CoffeeTier = "especial" | "gourmet" | "superior" | "tradicional";
+
 export interface Product {
   id: string;
   slug: string;
@@ -9,9 +12,15 @@ export interface Product {
   weight_g: number;
   price_cents: number;
   description: string;
-  intensity: number; // 1-5
-  acidity: number; // 1-5
-  body: number; // 1-5
+  // ---- Classificação sensorial (0 a 5, exibida em bolinhas) ----
+  body: number; // Corpo
+  sweetness: number; // Doçura
+  bitterness: number; // Amargor
+  acidity: number; // Acidez
+  aroma: number; // Aroma
+  aftertaste: number; // Retrogosto
+  intensity?: number; // legado — não é mais exibido
+  tier: CoffeeTier; // nível na Pirâmide do Café
   image_url: string;
   images?: string[]; // galeria — fotos extras do produto
   accent: "wine" | "gold";
@@ -24,6 +33,30 @@ export interface CartLine {
   product: Product;
   qty: number;
 }
+
+/** Atributos sensoriais na ordem em que aparecem na embalagem. */
+export const SENSORY_ATTRS = [
+  { key: "body", label: "Corpo" },
+  { key: "sweetness", label: "Doçura" },
+  { key: "bitterness", label: "Amargor" },
+  { key: "acidity", label: "Acidez" },
+  { key: "aroma", label: "Aroma" },
+  { key: "aftertaste", label: "Retrogosto" },
+] as const satisfies ReadonlyArray<{
+  key: keyof Product;
+  label: string;
+}>;
+
+/** Níveis da Pirâmide do Café, do topo (melhor) para a base. */
+export const COFFEE_TIERS = [
+  { key: "especial", label: "Especial" },
+  { key: "gourmet", label: "Gourmet" },
+  { key: "superior", label: "Superior" },
+  { key: "tradicional", label: "Tradicional / Extra forte" },
+] as const satisfies ReadonlyArray<{ key: CoffeeTier; label: string }>;
+
+export const tierLabel = (tier: CoffeeTier): string =>
+  COFFEE_TIERS.find((t) => t.key === tier)?.label ?? "Especial";
 
 /** Lista de fotos do produto (galeria), com fallback para a imagem principal. */
 export const productImages = (p: Product): string[] => {

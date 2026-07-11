@@ -2,26 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { BRL, productImages, type Product } from "@/lib/types";
+import { BRL, productImages, tierLabel, type Product } from "@/lib/types";
 import { useCart } from "@/store/cart";
-
-function Meter({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-center justify-between gap-3 text-xs">
-      <span className="uppercase tracking-widest text-cream/55">{label}</span>
-      <span className="flex gap-1">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <span
-            key={i}
-            className={`h-1.5 w-1.5 rounded-full ${
-              i < value ? "bg-gold" : "bg-white/12"
-            }`}
-          />
-        ))}
-      </span>
-    </div>
-  );
-}
+import { SensoryMeters } from "./SensoryMeters";
+import { CoffeePyramid } from "./CoffeePyramid";
 
 export function ProductModal({
   product,
@@ -147,17 +131,24 @@ export function ProductModal({
             <p className="text-xs uppercase tracking-[0.3em] text-gold/80">
               {product.line} · {product.weight_g}g
             </p>
-            <h2 className="font-display mt-1 text-3xl font-semibold text-cream">
-              {product.name}
-            </h2>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <h2 className="font-display text-3xl font-semibold text-cream">
+                {product.name}
+              </h2>
+              <span className="rounded-full border border-gold/40 px-2.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-gold">
+                {tierLabel(product.tier)}
+              </span>
+            </div>
             <p className="mt-3 text-sm leading-relaxed text-cream/70">
               {product.description}
             </p>
 
-            <div className="mt-5 space-y-2 border-t border-white/10 pt-5">
-              <Meter label="Intensidade" value={product.intensity} />
-              <Meter label="Acidez" value={product.acidity} />
-              <Meter label="Corpo" value={product.body} />
+            <div className="mt-5 border-t border-white/10 pt-5">
+              <SensoryMeters product={product} />
+            </div>
+
+            <div className="mt-5 border-t border-white/10 pt-5">
+              <CoffeePyramid tier={product.tier} />
             </div>
 
             <div className="mt-auto flex items-end justify-between pt-6">

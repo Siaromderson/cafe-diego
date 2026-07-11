@@ -1,27 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { BRL, type Product } from "@/lib/types";
+import { BRL, tierLabel, type Product } from "@/lib/types";
 import { useCart } from "@/store/cart";
 import { ProductModal } from "./ProductModal";
-
-function Meter({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-center justify-between gap-3 text-xs">
-      <span className="uppercase tracking-widest text-cream/55">{label}</span>
-      <span className="flex gap-1">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <span
-            key={i}
-            className={`h-1.5 w-1.5 rounded-full ${
-              i < value ? "bg-gold" : "bg-white/12"
-            }`}
-          />
-        ))}
-      </span>
-    </div>
-  );
-}
+import { SensoryMeters } from "./SensoryMeters";
 
 export function ProductCard({ product }: { product: Product }) {
   const add = useCart((s) => s.add);
@@ -55,17 +38,20 @@ export function ProductCard({ product }: { product: Product }) {
       <p className="text-xs uppercase tracking-[0.3em] text-gold/80">
         {product.line} · {product.weight_g}g
       </p>
-      <h3 className="font-display mt-1 text-2xl font-semibold text-cream">
-        {product.name}
-      </h3>
+      <div className="mt-1 flex items-center gap-2">
+        <h3 className="font-display text-2xl font-semibold text-cream">
+          {product.name}
+        </h3>
+        <span className="shrink-0 rounded-full border border-gold/40 px-2.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-gold">
+          {tierLabel(product.tier)}
+        </span>
+      </div>
       <p className="mt-2 text-sm leading-relaxed text-cream/65">
         {product.description}
       </p>
 
-      <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
-        <Meter label="Intensidade" value={product.intensity} />
-        <Meter label="Acidez" value={product.acidity} />
-        <Meter label="Corpo" value={product.body} />
+      <div className="mt-4 border-t border-white/10 pt-4">
+        <SensoryMeters product={product} />
       </div>
 
       <div className="mt-5 flex items-end justify-between">
