@@ -7,6 +7,10 @@ import { Footer } from "@/components/Footer";
 import { getProducts } from "@/lib/products-repo";
 import { getContent } from "@/lib/content";
 
+// A loja mostra dados editáveis no admin (produtos, pirâmide, textos). Sem isto,
+// o Next pré-renderiza a home estática no build e as edições não aparecem.
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const [products, content] = await Promise.all([getProducts(), getContent()]);
 
