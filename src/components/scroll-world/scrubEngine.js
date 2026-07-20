@@ -276,7 +276,7 @@ function mountScrollWorld(container, config) {
     // mais fluido; 1 frame ≈ 0.021s) e mobile @24fps (≈0.042s). O passo fica perto de
     // 1 frame: fino o bastante pra aproveitar todos os quadros, sem seeks redundantes
     // sub-frame que redecodam o mesmo quadro (principal causa de travamento em CPU).
-    const eps = isMobile() ? 0.06 : 0.025;
+    const eps = isMobile() ? 0.1 : 0.025;
     for (let i = 0; i < NSEG; i++) {
       const s = SEGMENTS[i];
       if (!s.hasClip || !s.ready || !s.video) continue;
