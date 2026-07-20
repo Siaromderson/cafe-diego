@@ -27,7 +27,7 @@ function buildSections(c: SiteContent) {
       still: `${BASE}/origem.jpg`,
       clip: `${BASE}/origem.mp4`,
       clipMobile: `${BASE}/origem-m.mp4`,
-      scroll: 1.6,
+      scroll: 2.2,
       linger: 0.4,
       eyebrow: c.heroBadge,
       title: `${c.heroTitleTop} ${c.heroTitleHighlight}`,
@@ -39,7 +39,7 @@ function buildSections(c: SiteContent) {
       still: `${BASE}/grao.jpg`,
       clip: `${BASE}/grao.mp4`,
       clipMobile: `${BASE}/grao-m.mp4`,
-      scroll: 1.4,
+      scroll: 2.0,
       linger: 0.35,
       eyebrow: c.historiaKicker,
       title: c.historiaTitle,
@@ -51,7 +51,7 @@ function buildSections(c: SiteContent) {
       still: `${BASE}/preparo.jpg`,
       clip: `${BASE}/preparo.mp4`,
       clipMobile: `${BASE}/preparo-m.mp4`,
-      scroll: 1.4,
+      scroll: 2.0,
       linger: 0.4,
       title: c.historiaP2,
     },
@@ -62,7 +62,7 @@ function buildSections(c: SiteContent) {
       still: `${BASE}/produto.jpg`,
       clip: `${BASE}/produto.mp4`,
       clipMobile: `${BASE}/produto-m.mp4`,
-      scroll: 1.7,
+      scroll: 2.3,
       linger: 0.4,
       eyebrow: c.entregaKicker,
       title: `${c.entregaTitleTop} ${c.entregaTitleHighlight}`,
@@ -89,7 +89,7 @@ export function HomeScrollWorld({
       atmosphere: false, // sem partículas/gradiente extra = menos repaint (mais fluido)
       hint: "role para voar",
       crossfade: 0.18, // seams mais suaves (mais fluido)
-      diveScroll: 1.5,
+      diveScroll: 2.0,
       sections: buildSections(content),
       connectors: [], // take contínuo: sem conectores, os cortes já emendam
     });
