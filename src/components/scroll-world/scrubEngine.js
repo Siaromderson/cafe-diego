@@ -271,7 +271,10 @@ function mountScrollWorld(container, config) {
   }
 
   function raf() {
-    const eps = isMobile() ? 0.02 : 0.008;   // coarser seek step on phones = fewer decodes
+    // Seek step in SECONDS. Clips are all-intra @24fps (1 frame ≈ 0.042s), so a step
+    // near one frame skips redundant sub-frame seeks that would re-decode the same
+    // frame — the single biggest scrub-jank source on CPU-only decode.
+    const eps = isMobile() ? 0.06 : 0.04;
     for (let i = 0; i < NSEG; i++) {
       const s = SEGMENTS[i];
       if (!s.hasClip || !s.ready || !s.video) continue;
@@ -306,8 +309,9 @@ function mountScrollWorld(container, config) {
   window.addEventListener('pointerdown', onFirstGesture, { once: true, passive: true });
   window.addEventListener('touchstart', onFirstGesture, { once: true, passive: true });
 
-  // Particles are a per-frame cost we can't afford alongside video scrubbing on a phone.
-  seedParticles(particles, reduce || coarse);
+  // Particles are a per-frame cost we can't afford alongside video scrubbing on a phone,
+  // and `atmosphere:false` should suppress them too (not just the gradient).
+  seedParticles(particles, reduce || coarse || config.atmosphere === false);
   window.addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(read); } }, { passive: true });
   // Mobile browsers fire `resize` every time the URL bar slides in/out. Re-running
   // layout() there rebuilds the track height and yanks the scroll position, so on

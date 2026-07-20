@@ -86,7 +86,7 @@ export function HomeScrollWorld({
     mountScrollWorld(container, {
       brand: null, // usamos a Navbar do site
       nav: false, // idem — sem nav duplicada
-      atmosphere: true,
+      atmosphere: false, // sem partículas/gradiente extra = menos repaint (mais fluido)
       hint: "role para voar",
       crossfade: 0.18, // seams mais suaves (mais fluido)
       diveScroll: 1.5,
