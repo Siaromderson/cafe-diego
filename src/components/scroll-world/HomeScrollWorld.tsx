@@ -133,14 +133,16 @@ export function HomeScrollWorld({
       window.matchMedia("(max-width: 860px)").matches ||
       window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 
+    const DIVE = 2.0;
+    const sections = buildSections(content, !isPhone);
     mountScrollWorld(container, {
       brand: null, // usamos a Navbar do site
       nav: false, // idem — sem nav duplicada
       atmosphere: false, // sem partículas/gradiente extra = menos repaint (mais fluido)
       hint: "role para voar",
       crossfade: 0.18, // seams mais suaves (mais fluido)
-      diveScroll: 2.0,
-      sections: buildSections(content, !isPhone),
+      diveScroll: DIVE,
+      sections,
       connectors: [], // take contínuo: sem conectores, os cortes já emendam
     });
 
@@ -160,6 +162,111 @@ export function HomeScrollWorld({
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
+
+    // ---- Snap pro texto -----------------------------------------------------
+    // Se a pessoa PARAR de rolar num "vão" (nenhuma copy legível — como entre dois
+    // beats), desliza suavemente até o ponto de texto mais próximo. Só age depois
+    // que a rolagem parou (debounce), nunca durante; cancela a qualquer interação
+    // (roda/toque/tecla). Desligado no celular (toque) e em reduced-motion, para
+    // não brigar com o scroll do usuário.
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const coarse = window.matchMedia(
+      "(hover: none) and (pointer: coarse)"
+    ).matches;
+    if (!reduce && !coarse) {
+      const W = sections.map((s) => s.scroll || DIVE); // vh de scroll por seção
+      const total = W.reduce((a, b) => a + b, 0);
+      const smooth = (x: number) => {
+        x = clamp(x);
+        return x * x * (3 - 2 * x);
+      };
+      const bands = (vh: number) => {
+        let a = 0;
+        return W.map((w) => {
+          const b = { s: a * vh, e: (a + w) * vh };
+          a += w;
+          return b;
+        });
+      };
+      // Maior opacidade de copy no y atual (mesma lógica do motor).
+      const maxCopy = (y: number, vh: number) => {
+        const b = bands(vh);
+        const N = b.length;
+        let m = 0;
+        for (let i = 0; i < N; i++) {
+          const { s, e } = b[i];
+          const pr = clamp((y - s) / (e - s));
+          const before = y < s;
+          const after = y > e;
+          let c: number;
+          if (i === 0) c = after ? 0 : smooth(1 - pr / 0.62);
+          else if (i === N - 1) c = before ? 0 : smooth(pr / 0.4);
+          else c = before || after ? 0 : smooth(1 - Math.abs(pr - 0.5) / 0.5);
+          if (c > m) m = c;
+        }
+        return m;
+      };
+      // y onde a copy de cada seção fica no auge.
+      const spots = (vh: number) => {
+        const b = bands(vh);
+        const N = b.length;
+        return b.map((seg, i) => {
+          const pr = i === 0 ? 0.08 : i === N - 1 ? 0.45 : 0.5;
+          return seg.s + pr * (seg.e - seg.s);
+        });
+      };
+
+      let raf = 0;
+      let snapping = false;
+      const cancelSnap = () => {
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+        snapping = false;
+      };
+      const snapTo = (ty: number) => {
+        const sy = window.scrollY;
+        const d = ty - sy;
+        if (Math.abs(d) < 2) return;
+        snapping = true;
+        let t0: number | null = null;
+        const step = (ts: number) => {
+          if (t0 == null) t0 = ts;
+          const p = Math.min(1, (ts - t0) / 420);
+          const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; // easeInOut
+          window.scrollTo(0, Math.round(sy + d * e));
+          if (p < 1) raf = requestAnimationFrame(step);
+          else {
+            raf = 0;
+            snapping = false;
+          }
+        };
+        raf = requestAnimationFrame(step);
+      };
+      (["wheel", "touchstart", "keydown", "pointerdown"] as const).forEach(
+        (ev) => window.addEventListener(ev, cancelSnap, { passive: true })
+      );
+
+      let timer = 0;
+      const scheduleSnap = () => {
+        if (snapping) return; // ignora a nossa própria animação
+        clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          const vh = window.innerHeight;
+          const y = window.scrollY;
+          if (y < 0.25 * vh || y > total * vh - 0.25 * vh) return; // hero/dissolve livres
+          if (maxCopy(y, vh) >= 0.5) return; // já tem texto legível → não mexe
+          const sp = spots(vh);
+          let best = sp[0];
+          for (const s of sp)
+            if (Math.abs(s - y) < Math.abs(best - y)) best = s;
+          const dist = Math.abs(best - y);
+          // Limite superior cobre o vão mais largo (~1,5vh até o texto mais
+          // próximo) sem deixar ponto morto; inferior evita micro-ajustes.
+          if (dist > 0.04 * vh && dist < 2.0 * vh) snapTo(best);
+        }, 170);
+      };
+      window.addEventListener("scroll", scheduleSnap, { passive: true });
+    }
     // Sem teardown: o motor registra listeners próprios sem API de remoção e o
     // guard `mounted` evita duplicar no StrictMode (dev). Monta uma única vez —
     // `content` é lido no mount e não muda durante a vida da página.
