@@ -156,6 +156,7 @@ function mountScrollWorld(container, config) {
       (s.title ? `<h2 class="sw-copy__title">${esc(s.title)}</h2>` : '') +
       (s.body ? `<p class="sw-copy__body">${esc(s.body)}</p>` : '') +
       (s.tags && s.tags.length ? `<ul class="sw-copy__tags">${s.tags.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '') +
+      (s.extraHtml ? s.extraHtml : '') +
       (s.cta ? `<div class="sw-copy__cta">${ctaBtns(s.cta)}</div>` : '');
     copylayer.appendChild(c); copies.push(c);
 
@@ -271,10 +272,11 @@ function mountScrollWorld(container, config) {
   }
 
   function raf() {
-    // Seek step in SECONDS. Clips are all-intra @24fps (1 frame ≈ 0.042s), so a step
-    // near one frame skips redundant sub-frame seeks that would re-decode the same
-    // frame — the single biggest scrub-jank source on CPU-only decode.
-    const eps = isMobile() ? 0.06 : 0.04;
+    // Seek step in SECONDS. Desktop clips são all-intra @48fps (interpolados p/ scrub
+    // mais fluido; 1 frame ≈ 0.021s) e mobile @24fps (≈0.042s). O passo fica perto de
+    // 1 frame: fino o bastante pra aproveitar todos os quadros, sem seeks redundantes
+    // sub-frame que redecodam o mesmo quadro (principal causa de travamento em CPU).
+    const eps = isMobile() ? 0.06 : 0.025;
     for (let i = 0; i < NSEG; i++) {
       const s = SEGMENTS[i];
       if (!s.hasClip || !s.ready || !s.video) continue;

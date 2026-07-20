@@ -10,15 +10,53 @@ import { CONTENT_DEFAULTS, type SiteContent } from "@/lib/content-data";
  * Ao final, o mundo do vídeo DISSOLVE no marrom do site (fade de saída), levando
  * naturalmente ao Hero ("O verdadeiro Café do Feirante") que vem logo abaixo.
  *
- * Toda a copy vem do conteúdo editável do site (content-data / admin) — nada de
- * texto novo é inventado aqui.
+ * Os títulos/textos vêm do conteúdo editável do site (content-data / admin). No
+ * PC, alguns beats ganham detalhes visuais que ecoam recursos reais do site — a
+ * classificação sensorial (bolinhas) e a pirâmide do café — para dar acabamento.
  */
 
 const BASE = "/scroll-world";
 
 const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 
-function buildSections(c: SiteContent) {
+// --- Detalhes visuais (só desktop) que ecoam recursos reais do site ---------
+// Bolinhas = classificação sensorial (mesmo look do componente SensoryMeters);
+// pirâmide = mesmo SVG do CoffeePyramid, com "Especial" (o topo) em destaque.
+
+function dotsRow(label: string, n: number) {
+  const dots = Array.from({ length: 5 }, (_, i) =>
+    `<span style="width:7px;height:7px;border-radius:50%;background:${
+      i < n ? "var(--sw-accent)" : "rgba(245,236,217,.16)"
+    }"></span>`
+  ).join("");
+  return `<div style="display:flex;align-items:center;gap:12px;margin-top:8px">
+    <span style="min-width:82px;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sw-ink);opacity:.72">${label}</span>
+    <span style="display:flex;gap:5px">${dots}</span></div>`;
+}
+
+// Perfil representativo, ancorado na história do site ("encorpado, aromático,
+// doçura natural" — torra média que respeita o grão).
+const SENSORY_HTML = `<div style="margin-top:24px">
+  <div style="font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--sw-accent)">Classificação sensorial</div>
+  ${dotsRow("Corpo", 4)}${dotsRow("Aroma", 5)}${dotsRow("Doçura", 4)}
+</div>`;
+
+const PYRAMID_HTML = `<div style="margin-top:24px;display:flex;align-items:center;gap:16px">
+  <svg viewBox="0 0 100 80" style="height:68px;width:auto;flex-shrink:0" aria-hidden="true">
+    <defs><linearGradient id="sw-pyr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3dca5"/><stop offset="1" stop-color="#c9a96a"/></linearGradient></defs>
+    <polygon points="50,4 60.5,21.5 39.5,21.5" fill="url(#sw-pyr)" stroke="#f3dca5" stroke-width="1" stroke-linejoin="round"/>
+    <polygon points="39.5,21.5 60.5,21.5 71,39 29,39" fill="rgba(245,236,217,.05)" stroke="rgba(231,201,135,.28)" stroke-width=".7" stroke-linejoin="round"/>
+    <polygon points="29,39 71,39 81.5,56.5 18.5,56.5" fill="rgba(245,236,217,.05)" stroke="rgba(231,201,135,.28)" stroke-width=".7" stroke-linejoin="round"/>
+    <polygon points="18.5,56.5 81.5,56.5 92,74 8,74" fill="rgba(245,236,217,.05)" stroke="rgba(231,201,135,.28)" stroke-width=".7" stroke-linejoin="round"/>
+  </svg>
+  <div>
+    <div style="font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--sw-accent)">Pirâmide do café</div>
+    <div style="margin-top:7px;font-size:1rem;color:var(--sw-ink)"><strong>Especial</strong> — o topo da pirâmide</div>
+    <div style="margin-top:4px;font-size:.78rem;color:var(--sw-ink-soft)">Especial › Gourmet › Superior › Tradicional</div>
+  </div>
+</div>`;
+
+function buildSections(c: SiteContent, withDetails: boolean) {
   return [
     {
       id: "origem",
@@ -45,6 +83,7 @@ function buildSections(c: SiteContent) {
       linger: 0.35,
       eyebrow: c.historiaKicker,
       title: c.historiaTitle,
+      extraHtml: withDetails ? SENSORY_HTML : undefined,
     },
     {
       id: "preparo",
@@ -57,6 +96,7 @@ function buildSections(c: SiteContent) {
       scroll: 2.0,
       linger: 0.4,
       title: c.historiaP2,
+      extraHtml: withDetails ? PYRAMID_HTML : undefined,
     },
     {
       id: "produto",
@@ -87,6 +127,12 @@ export function HomeScrollWorld({
     if (!container || mounted.current) return;
     mounted.current = true;
 
+    // Detalhes visuais (bolinhas/pirâmide) só no PC — no celular a copy fica
+    // ancorada embaixo e o espaço é curto.
+    const isPhone =
+      window.matchMedia("(max-width: 860px)").matches ||
+      window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
     mountScrollWorld(container, {
       brand: null, // usamos a Navbar do site
       nav: false, // idem — sem nav duplicada
@@ -94,7 +140,7 @@ export function HomeScrollWorld({
       hint: "role para voar",
       crossfade: 0.18, // seams mais suaves (mais fluido)
       diveScroll: 2.0,
-      sections: buildSections(content),
+      sections: buildSections(content, !isPhone),
       connectors: [], // take contínuo: sem conectores, os cortes já emendam
     });
 
