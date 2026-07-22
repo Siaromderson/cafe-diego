@@ -1,5 +1,4 @@
 import { Navbar } from "@/components/Navbar";
-import { HomeScrollWorld } from "@/components/scroll-world/HomeScrollWorld";
 import { Hero } from "@/components/Hero";
 import { ProductCard } from "@/components/ProductCard";
 import { GrindGuide } from "@/components/GrindGuide";
@@ -19,7 +18,6 @@ export default async function Home() {
     <main className="relative">
       <Navbar />
       <CartDrawer />
-      <HomeScrollWorld content={content} />
       <Hero content={content} />
 
       {/* Produtos */}
