@@ -81,6 +81,7 @@ export default function CheckoutPage() {
   const [accountEmail, setAccountEmail] = useState<string>("");
 
   const [shipOptions, setShipOptions] = useState<ShipOption[]>([]);
+  const [quoting, setQuoting] = useState(false);
   // Padrão: retirar no local (sem custo). Entrega é a opção secundária.
   const [shipMethod, setShipMethod] = useState<string>(PICKUP_KEY);
   const [payMethods, setPayMethods] = useState<PayMethod[]>([]);
@@ -117,6 +118,44 @@ export default function CheckoutPage() {
   });
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Recalcula o frete pelos Correios quando o CEP fica válido (8 dígitos). Sem
+  // Correios configurado, o endpoint devolve as opções fixas — sem regressão.
+  const cepDigits = form.cep.replace(/\D/g, "");
+  const itemsKey = lines.map((l) => `${l.product.id}:${l.qty}`).join(",");
+  useEffect(() => {
+    if (cepDigits.length !== 8 || lines.length === 0) return;
+    let cancelled = false;
+    const t = setTimeout(() => {
+      setQuoting(true);
+      fetch("/api/shipping/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cep: cepDigits,
+          items: lines.map((l) => ({ id: l.product.id, qty: l.qty })),
+        }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (cancelled || !Array.isArray(d?.options)) return;
+          setShipOptions(d.options);
+          // Se o método escolhido sumiu da nova lista, mantém a retirada.
+          setShipMethod((cur) =>
+            d.options.some((o: ShipOption) => o.key === cur) ? cur : PICKUP_KEY
+          );
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setQuoting(false);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cepDigits, itemsKey]);
 
   // Pré-preenche os dados: cliente logado puxa do cadastro; senão, usa o que
   // foi salvo neste aparelho na última compra. Só preenche campos vazios (não
@@ -398,8 +437,13 @@ export default function CheckoutPage() {
           </div>
 
           {/* Forma de entrega */}
-          <h2 className="font-display mt-7 text-lg text-gold">
+          <h2 className="font-display mt-7 flex items-center gap-2 text-lg text-gold">
             Como você quer receber?
+            {quoting && (
+              <span className="text-xs font-normal text-gold/70">
+                calculando frete…
+              </span>
+            )}
           </h2>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {shipOptions.map((o) => (

@@ -5,11 +5,12 @@ import { getProducts } from "@/lib/products-repo";
 import { createNupayPayment } from "@/lib/nupay";
 import { createMercadoPagoPreference } from "@/lib/mercadopago";
 import {
-  getShippingConfig,
   isPickup,
   PICKUP_KEY,
   getPaymentMethods,
+  resolveShipping,
 } from "@/lib/shipping";
+import { cartWeightGrams } from "@/lib/correios";
 import { feeCentsForPct } from "@/lib/payments";
 import { isValidBrazilPhone, phoneForSubmit } from "@/lib/phone";
 import { T } from "@/lib/tables";
@@ -105,13 +106,14 @@ export async function POST(req: NextRequest) {
     0
   );
 
-  // ---- Frete (validado no servidor a partir das configurações) ----
-  const shipConfig = await getShippingConfig();
-  const chosen =
-    shipConfig.options.find((o) => o.key === shippingMethod) ??
-    shipConfig.options.find((o) => o.key === PICKUP_KEY)!;
-  const shippingCents = pickup ? 0 : chosen.cents;
+  // ---- Frete (validado no servidor; recalculado nos Correios quando aplicável) ----
+  const weightGrams = cartWeightGrams(
+    lines.map((l) => ({ weight_g: l.product.weight_g, qty: l.qty }))
+  );
+  const chosen = await resolveShipping(shippingMethod, address?.cep ?? "", weightGrams);
+  const shippingCents = chosen.cents;
   const shippingLabel = chosen.label;
+  const shippingMethodKey = chosen.method;
 
   // ---- Taxa da forma de pagamento (repassada ao cliente) ----
   const payMethods = await getPaymentMethods();
@@ -182,7 +184,7 @@ export async function POST(req: NextRequest) {
         status: "pending",
         total_cents: totalCents,
         shipping_cents: shippingCents,
-        shipping_method: pickup ? PICKUP_KEY : shippingMethod ?? "delivery",
+        shipping_method: pickup ? PICKUP_KEY : shippingMethodKey,
         reference_id: referenceId,
         customer_name: customer.name,
         customer_phone: customerPhone,
