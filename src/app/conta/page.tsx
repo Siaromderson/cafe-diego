@@ -7,6 +7,7 @@ import { T } from "@/lib/tables";
 import { BRL } from "@/lib/types";
 import { BrandMark } from "@/components/BrandMark";
 import { LogoutButton } from "@/components/LogoutButton";
+import { TrackingView } from "@/components/TrackingView";
 import { formatDateBR, formatPlainDateBR } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
@@ -90,6 +91,11 @@ export default async function AccountPage() {
                     {BRL(o.total_cents ?? 0)}
                   </span>
                 </div>
+                {o.tracking_code && (
+                  <div className="mt-2 border-t border-white/10 pt-2">
+                    <TrackingView code={o.tracking_code} />
+                  </div>
+                )}
               </div>
             );
           })}

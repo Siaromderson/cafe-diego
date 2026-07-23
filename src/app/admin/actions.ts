@@ -51,6 +51,21 @@ export async function cancelOrder(id: string) {
   return setOrderStatus(id, "canceled");
 }
 
+/**
+ * Salva (ou limpa) o código de rastreio dos Correios de um pedido. O cliente
+ * passa a ver o botão "Rastrear" na área "Minhas compras".
+ */
+export async function setOrderTracking(id: string, codeRaw: string) {
+  const sb = await guard();
+  const code = String(codeRaw || "").trim().toUpperCase();
+  await sb
+    .from(T.orders)
+    .update({ tracking_code: code || null })
+    .eq("id", id);
+  revalidatePath("/admin");
+  revalidatePath("/admin/entregues");
+}
+
 /** Apaga um pedido em definitivo (itens + pedido). */
 export async function deleteOrder(id: string) {
   const sb = await guard();

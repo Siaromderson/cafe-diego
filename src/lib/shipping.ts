@@ -1,7 +1,8 @@
-import { hasSupabase } from "./env";
+import { hasSupabase, hasCorreios } from "./env";
 import { getSupabaseAdmin } from "./supabase/server";
 import { T } from "./tables";
 import { parsePct, PAY_METHODS, type PayMethod } from "./payments";
+import { quoteShipping } from "./correios";
 
 /** Taxa de entrega padrão (em reais), ajustável no painel. */
 export const DELIVERY_FEE_DEFAULT = "15,00";
@@ -59,6 +60,70 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
   ];
 
   return { deliveryCents, options };
+}
+
+/** Prefixo das chaves de frete calculado pelos Correios (ex.: "correios_sedex"). */
+export const CORREIOS_PREFIX = "correios_";
+
+/** Texto curto de prazo a partir do número de dias úteis dos Correios. */
+function etaLabel(days: number): string {
+  if (days <= 0) return "Prazo estimado pelos Correios";
+  return `Chega em ~${days} ${days === 1 ? "dia útil" : "dias úteis"}`;
+}
+
+/**
+ * Opções de entrega para um destino + peso. Quando os Correios estão
+ * configurados e respondem, devolve retirada + SEDEX/PAC calculados; senão cai
+ * nas opções fixas (`getShippingConfig`). Nunca lança — o checkout não pode
+ * quebrar por causa de uma indisponibilidade dos Correios.
+ */
+export async function getShippingQuote(
+  cep: string,
+  weightGrams: number
+): Promise<ShipOption[]> {
+  const base = await getShippingConfig();
+  if (!hasCorreios) return base.options;
+
+  const quotes = await quoteShipping(cep, weightGrams);
+  if (!quotes || !quotes.length) return base.options;
+
+  const pickup =
+    base.options.find((o) => o.key === PICKUP_KEY) ?? {
+      key: PICKUP_KEY,
+      label: "Retirar no local",
+      cents: 0,
+      eta: "Retire quando quiser, sem custo",
+    };
+
+  const shipped: ShipOption[] = quotes.map((q) => ({
+    key: `${CORREIOS_PREFIX}${q.service}`,
+    label: q.label,
+    cents: q.cents,
+    eta: etaLabel(q.etaDays),
+  }));
+
+  return [pickup, ...shipped];
+}
+
+/**
+ * Resolve o frete do método escolhido no servidor (fonte da verdade). Recalcula
+ * junto aos Correios quando aplicável — o preço nunca vem do cliente.
+ */
+export async function resolveShipping(
+  method: string | undefined | null,
+  cep: string,
+  weightGrams: number
+): Promise<{ cents: number; label: string; method: string }> {
+  if (isPickup(method)) {
+    return { cents: 0, label: "Retirar no local", method: PICKUP_KEY };
+  }
+  const options = await getShippingQuote(cep, weightGrams);
+  const chosen =
+    options.find((o) => o.key === method) ??
+    options.find((o) => o.key === DELIVERY_KEY) ??
+    options.find((o) => o.key !== PICKUP_KEY) ??
+    options[0];
+  return { cents: chosen.cents, label: chosen.label, method: chosen.key };
 }
 
 /** A chave de entrega escolhida é retirada no local? */

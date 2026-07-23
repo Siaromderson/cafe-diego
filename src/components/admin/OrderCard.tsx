@@ -1,5 +1,6 @@
 import { BRL } from "@/lib/types";
 import { OrderStatus } from "./OrderStatus";
+import { OrderTracking } from "./OrderTracking";
 import { ConfirmButton } from "./ConfirmButton";
 import { cancelOrder, deleteOrder } from "@/app/admin/actions";
 import { formatDateTimeBR, formatPlainDateBR } from "@/lib/timezone";
@@ -45,6 +46,7 @@ export interface OrderRow {
   total_cents?: number;
   shipping_cents?: number;
   shipping_method?: string | null;
+  tracking_code?: string | null;
   customer_name?: string;
   customer_phone?: string;
   customer_email?: string;
@@ -127,6 +129,10 @@ export function OrderCard({ o }: { o: OrderRow }) {
           </p>
         </div>
       </div>
+
+      {o.shipping_method !== "pickup" && (
+        <OrderTracking id={o.id} code={o.tracking_code} />
+      )}
 
       <div className="mt-4 flex justify-end gap-2 border-t border-white/10 pt-3">
         {o.status !== "canceled" && (

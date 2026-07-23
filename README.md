@@ -43,6 +43,34 @@ página de checkout**, sem ser redirecionado para outro site. Em `.env.local`:
 > Sem a chave pública, o checkout volta ao modo antigo (redirecionamento externo
 > para o Mercado Pago).
 
+## Frete e rastreio pelos Correios
+
+A loja calcula **SEDEX e PAC** pelo CEP no checkout e mostra o **rastreio** dos
+pedidos (para o cliente em *Minhas compras* e para você no painel). Usa a API
+oficial dos Correios (CWS — `api.correios.com.br`), que exige **contrato** e
+**cartão de postagem**.
+
+1. Rode a migration `supabase/add_correios.sql` (adiciona `tracking_code` no
+   pedido).
+2. No *Meu Correios* → *Gerar Código de Acesso à API*, gere o código de acesso.
+3. Preencha em `.env.local` / Vercel:
+   - `CORREIOS_USER` — seu usuário do Meu Correios
+   - `CORREIOS_ACCESS_CODE` — código de acesso gerado para a API
+   - `CORREIOS_CARTAO_POSTAGEM` — número do cartão de postagem
+   - `CORREIOS_CEP_ORIGEM` — CEP de onde os pedidos são postados (só números)
+   - `CORREIOS_CONTRATO` — (opcional) número do contrato
+   - `CORREIOS_SEDEX_CODE` / `CORREIOS_PAC_CODE` — (opcional) códigos de serviço
+     do seu contrato. Padrões: `03220` (SEDEX) e `03298` (PAC)
+   - `CORREIOS_BASE_URL` — (opcional) padrão `https://api.correios.com.br`
+
+> **Sem essas chaves, nada quebra:** o checkout continua com o **frete fixo**
+> definido em *Configurações* e o rastreio fica desativado. Qualquer
+> indisponibilidade dos Correios também cai automaticamente no frete fixo — a
+> venda nunca trava.
+
+Depois de postar um pedido, cole o **código de rastreio** no card do pedido em
+`/admin`; o cliente passa a ver o botão *Rastrear* na área dele.
+
 ## Aviso de pedido no WhatsApp
 
 Quando um cliente finaliza um pedido, a loja pode receber uma mensagem
