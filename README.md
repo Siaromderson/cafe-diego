@@ -106,8 +106,9 @@ por pedido):
 - **Tempo real:** quando o pagamento volta recusado/expirado nos webhooks
   (Mercado Pago / NuPay), a loja é avisada na hora.
 - **Abandonados:** a varredura `GET /api/cron/pending-orders` avisa os pedidos
-  que ficaram `pending` além da janela configurada. Está agendada de hora em
-  hora no `vercel.json` (no plano Hobby da Vercel os crons rodam ~1x/dia).
+  que ficaram `pending` além da janela configurada. Está agendada **1x/dia** no
+  `vercel.json` (compatível com o plano Hobby; no Pro dá pra aumentar a
+  frequência, ex.: `0 * * * *` para de hora em hora).
 - **Teste/manual:** em **Configurações → Avisar pendentes**, o admin dispara
   agora todos os pedidos pendentes para o WhatsApp da loja.
 
