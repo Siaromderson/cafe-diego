@@ -35,6 +35,12 @@ export const env = {
   correiosSedexCode: process.env.CORREIOS_SEDEX_CODE ?? "03220",
   correiosPacCode: process.env.CORREIOS_PAC_CODE ?? "03298",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  // Aviso automático de pedido NÃO pago (varredura do cron). cronSecret protege
+  // o endpoint /api/cron/pending-orders (a Vercel envia `Authorization: Bearer
+  // <CRON_SECRET>` nas execuções agendadas). pendingNotifyMinutes = há quantos
+  // minutos o pedido precisa estar "pending" (abandonado) para gerar o aviso.
+  cronSecret: process.env.CRON_SECRET ?? "",
+  pendingNotifyMinutes: Number(process.env.PENDING_NOTIFY_MINUTES ?? "30"),
 };
 
 /** A loja funciona sem Supabase usando o catálogo estático até as chaves entrarem. */

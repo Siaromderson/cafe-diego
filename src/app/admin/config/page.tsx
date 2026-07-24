@@ -6,7 +6,11 @@ import { ToggleField } from "@/components/admin/ToggleField";
 import { HelpButton } from "@/components/admin/HelpButton";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { TestWhatsappButton } from "@/components/admin/TestWhatsappButton";
-import { clearAllOrders, sendTestWhatsapp } from "@/app/admin/actions";
+import {
+  clearAllOrders,
+  sendTestWhatsapp,
+  notifyPendingWhatsapp,
+} from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -165,6 +169,53 @@ export default async function AdminConfig() {
             </p>
           </div>
           <TestWhatsappButton action={sendTestWhatsapp} />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-4">
+        <h2 className="font-display text-xl text-gold">
+          Aviso de pedido não pago
+        </h2>
+        <HelpButton title="Aviso de pedido não pago no WhatsApp">
+          <p>
+            Além do aviso de venda, a loja também é avisada quando alguém{" "}
+            <strong>faz um pedido e não paga</strong> — para o vendedor entrar
+            em contato e tentar concluir a venda.
+          </p>
+          <ul className="ml-4 list-disc space-y-0.5">
+            <li>
+              <strong>Automático:</strong> pagamento recusado/expirado avisa na
+              hora; pedido abandonado (sem pagar) é avisado pela varredura a cada
+              hora.
+            </li>
+            <li>
+              <strong>Nunca vai para o cliente:</strong> o aviso chega só no{" "}
+              <strong>WhatsApp da loja</strong>.
+            </li>
+            <li>
+              <strong>Avisar pendentes:</strong> dispara agora, para o número da
+              loja, todos os pedidos que ainda não foram pagos. Use para testar.
+            </li>
+          </ul>
+        </HelpButton>
+      </div>
+      <div className="rounded-2xl border border-gold/20 bg-gold/5 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="font-medium text-cream">
+              Avisar a loja sobre pedidos não pagos
+            </p>
+            <p className="mt-1 text-sm text-cream/60">
+              {hasUazapi
+                ? "Envia agora, só para o WhatsApp da loja, os pedidos ainda não pagos. Nada vai para o cliente."
+                : "Defina UAZAPI_URL e UAZAPI_TOKEN no servidor e reinicie para ligar."}
+            </p>
+          </div>
+          <TestWhatsappButton
+            action={notifyPendingWhatsapp}
+            label="Avisar pendentes"
+            busyLabel="Avisando…"
+          />
         </div>
       </div>
 

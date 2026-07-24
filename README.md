@@ -96,6 +96,31 @@ painel do Mercado Pago (*Webhooks*), assinando o evento **Pagamentos**.
 > NuPay como fallback. Sem nenhuma das duas, o checkout entra em modo
 > demonstração (pagamento simulado).
 
+### Aviso de pedido **não pago**
+
+Além do aviso de venda, a loja é avisada quando alguém **faz um pedido e não
+paga** — para o vendedor entrar em contato. O aviso vai **só para o número da
+loja**; nada é enviado ao cliente. Duas frentes, ambas idempotentes (um aviso
+por pedido):
+
+- **Tempo real:** quando o pagamento volta recusado/expirado nos webhooks
+  (Mercado Pago / NuPay), a loja é avisada na hora.
+- **Abandonados:** a varredura `GET /api/cron/pending-orders` avisa os pedidos
+  que ficaram `pending` além da janela configurada. Está agendada de hora em
+  hora no `vercel.json` (no plano Hobby da Vercel os crons rodam ~1x/dia).
+- **Teste/manual:** em **Configurações → Avisar pendentes**, o admin dispara
+  agora todos os pedidos pendentes para o WhatsApp da loja.
+
+Rode a migration `supabase/add_unpaid_notify.sql` (coluna `unpaid_notified_at`)
+e configure no servidor:
+
+| Variável | Descrição |
+|----------|-----------|
+| `UAZAPI_URL`, `UAZAPI_TOKEN` | Instância do WhatsApp (mesmas do aviso de venda). |
+| `UAZAPI_NOTIFY_NUMBER` | (opcional) número que recebe os avisos; se vazio, usa o WhatsApp da loja do painel. |
+| `CRON_SECRET` | Protege o endpoint do cron (a Vercel envia `Authorization: Bearer <CRON_SECRET>`). Sem ele, a varredura fica desligada. |
+| `PENDING_NOTIFY_MINUTES` | Minutos que o pedido precisa estar `pending` para virar aviso (padrão `30`). |
+
 ## Estrutura
 
 | Rota | Descrição |

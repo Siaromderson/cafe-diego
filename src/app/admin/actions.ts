@@ -5,7 +5,7 @@ import { getSupabaseServer, getSupabaseAdmin } from "@/lib/supabase/server";
 import { getIsAdmin } from "@/lib/auth";
 import { T } from "@/lib/tables";
 import { hasUazapi } from "@/lib/env";
-import { sendTestToStore } from "@/lib/whatsapp";
+import { sendTestToStore, sweepPendingUnpaid } from "@/lib/whatsapp";
 import { whatsappDisplay } from "@/lib/content-data";
 import { normalizePhone } from "@/lib/phone";
 
@@ -249,6 +249,43 @@ export async function sendTestWhatsapp(): Promise<{
     message: `Falha ao enviar${
       r.status ? ` (HTTP ${r.status})` : ""
     }: ${detail}`,
+  };
+}
+
+/**
+ * Avisa a loja no WhatsApp sobre TODOS os pedidos ainda não pagos (pending).
+ * Usado pelo botão "Avisar pendentes" do admin — serve de teste do cenário e
+ * como ferramenta do dia a dia. Envia só para o número da loja; nada vai para
+ * o cliente (o vendedor entra em contato depois).
+ */
+export async function notifyPendingWhatsapp(): Promise<{
+  ok: boolean;
+  message: string;
+}> {
+  if (!(await getIsAdmin())) return { ok: false, message: "Não autorizado." };
+  if (!hasUazapi) {
+    return {
+      ok: false,
+      message:
+        "UAZAPI não configurada. Defina UAZAPI_URL e UAZAPI_TOKEN no servidor e reinicie.",
+    };
+  }
+
+  const r = await sweepPendingUnpaid({ force: true });
+  if (!r.ok) {
+    return {
+      ok: false,
+      message: `Falha ao avisar: ${r.error ?? "erro desconhecido"}`,
+    };
+  }
+  if (r.total === 0) {
+    return { ok: true, message: "Nenhum pedido pendente no momento. Nada a avisar." };
+  }
+
+  const dest = r.to ? ` para ${whatsappDisplay(r.to)}` : "";
+  return {
+    ok: true,
+    message: `${r.notified} de ${r.total} pedido(s) pendente(s) avisado(s)${dest}. Confira o WhatsApp.`,
   };
 }
 
