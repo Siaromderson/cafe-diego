@@ -7,7 +7,7 @@ import { createMercadoPagoPreference } from "@/lib/mercadopago";
 import {
   getShippingConfig,
   isPickup,
-  PICKUP_KEY,
+  resolveShipping,
   getPaymentMethods,
 } from "@/lib/shipping";
 import { feeCentsForPct } from "@/lib/payments";
@@ -105,13 +105,14 @@ export async function POST(req: NextRequest) {
     0
   );
 
-  // ---- Frete (validado no servidor a partir das configurações) ----
+  // ---- Frete (validado no servidor a partir das configurações e da cidade) ----
+  // Campo Grande é grátis; fora de CG usa o valor do painel ou fica "a combinar"
+  // (nesse caso não cobra agora — a loja acerta o frete depois).
   const shipConfig = await getShippingConfig();
-  const chosen =
-    shipConfig.options.find((o) => o.key === shippingMethod) ??
-    shipConfig.options.find((o) => o.key === PICKUP_KEY)!;
-  const shippingCents = pickup ? 0 : chosen.cents;
-  const shippingLabel = chosen.label;
+  const ship = resolveShipping(shipConfig, shippingMethod, address?.city);
+  const shippingCents = ship.cents;
+  const shippingLabel = ship.label;
+  const shippingMethodStored = ship.method;
 
   // ---- Taxa da forma de pagamento (repassada ao cliente) ----
   const payMethods = await getPaymentMethods();
@@ -182,7 +183,7 @@ export async function POST(req: NextRequest) {
         status: "pending",
         total_cents: totalCents,
         shipping_cents: shippingCents,
-        shipping_method: pickup ? PICKUP_KEY : shippingMethod ?? "delivery",
+        shipping_method: shippingMethodStored,
         reference_id: referenceId,
         customer_name: customer.name,
         customer_phone: customerPhone,

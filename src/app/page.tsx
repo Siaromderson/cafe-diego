@@ -6,13 +6,25 @@ import { CartDrawer } from "@/components/CartDrawer";
 import { Footer } from "@/components/Footer";
 import { getProducts } from "@/lib/products-repo";
 import { getContent } from "@/lib/content";
+import { getShippingConfig } from "@/lib/shipping";
+import { QUOTE_LABEL } from "@/lib/shipping-city";
+import { BRL } from "@/lib/types";
 
 // A loja mostra dados editáveis no admin (produtos, pirâmide, textos). Sem isto,
 // o Next pré-renderiza a home estática no build e as edições não aparecem.
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [products, content] = await Promise.all([getProducts(), getContent()]);
+  const [products, content, shipping] = await Promise.all([
+    getProducts(),
+    getContent(),
+    getShippingConfig(),
+  ]);
+  // Frete de fora de Campo Grande: "A combinar" ou o valor definido no painel.
+  const outFreightLabel =
+    shipping.outDeliveryCents == null
+      ? QUOTE_LABEL.toLowerCase()
+      : BRL(shipping.outDeliveryCents);
 
   return (
     <main className="relative">
@@ -116,6 +128,17 @@ export default async function Home() {
               <p className="mt-2 text-sm text-cream/65">{s.d}</p>
             </div>
           ))}
+        </div>
+        <div className="mx-auto mt-10 flex max-w-2xl flex-col items-center gap-2 rounded-3xl border border-gold/20 bg-gold/5 px-6 py-6 text-center">
+          <p className="text-lg font-medium text-cream">
+            <span className="gold-text">Frete grátis em Campo Grande</span> · em
+            até 24h
+          </p>
+          <p className="text-sm text-cream/65">
+            Fora de Campo Grande, o frete fica{" "}
+            <strong className="text-gold">{outFreightLabel}</strong>. Retirada no
+            local é sempre sem custo.
+          </p>
         </div>
       </section>
 

@@ -12,6 +12,11 @@ import { type PayMethod, feeCentsForPct } from "@/lib/payments";
 import { isValidBrazilPhone, phoneForSubmit, formatPhoneAsYouType } from "@/lib/phone";
 import { hasSupabase } from "@/lib/env";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import {
+  PICKUP_KEY,
+  isCampoGrande,
+  QUOTE_LABEL,
+} from "@/lib/shipping-city";
 
 interface ShipOption {
   key: string;
@@ -28,7 +33,6 @@ interface PaymentSession {
   publicKey: string;
 }
 
-const PICKUP_KEY = "pickup";
 const BUYER_KEY = "cafe_diego_buyer";
 
 interface SavedBuyer {
@@ -81,6 +85,8 @@ export default function CheckoutPage() {
   const [accountEmail, setAccountEmail] = useState<string>("");
 
   const [shipOptions, setShipOptions] = useState<ShipOption[]>([]);
+  // Frete fora de Campo Grande: centavos definidos no painel, ou null = "A combinar".
+  const [outDeliveryCents, setOutDeliveryCents] = useState<number | null>(null);
   // Padrão: retirar no local (sem custo). Entrega é a opção secundária.
   const [shipMethod, setShipMethod] = useState<string>(PICKUP_KEY);
   const [payMethods, setPayMethods] = useState<PayMethod[]>([]);
@@ -91,6 +97,9 @@ export default function CheckoutPage() {
       .then((r) => r.json())
       .then((d) => {
         if (Array.isArray(d?.options)) setShipOptions(d.options);
+        setOutDeliveryCents(
+          typeof d?.outDeliveryCents === "number" ? d.outDeliveryCents : null
+        );
         if (Array.isArray(d?.payMethods) && d.payMethods.length) {
           setPayMethods(d.payMethods);
           // Garante que a forma selecionada existe entre as ativas.
@@ -231,8 +240,19 @@ export default function CheckoutPage() {
   }
 
   const isPickup = shipMethod === PICKUP_KEY;
-  const selectedOption = shipOptions.find((o) => o.key === shipMethod);
-  const shippingCents = isPickup ? 0 : selectedOption?.cents ?? 0;
+  // Frete por cidade: Campo Grande é grátis; fora usa o valor do painel, e
+  // quando não há valor definido fica "A combinar" (paga só os produtos agora).
+  const cityKnown = form.city.trim().length > 0;
+  const cityIsCG = isCampoGrande(form.city);
+  const isOutbound = !isPickup && cityKnown && !cityIsCG;
+  const deliveryQuote = isOutbound && outDeliveryCents == null;
+  const shippingCents = isOutbound && outDeliveryCents != null ? outDeliveryCents : 0;
+  // Rótulo do frete de entrega (usado no card da opção e no resumo).
+  const deliveryPriceLabel = deliveryQuote
+    ? QUOTE_LABEL
+    : shippingCents > 0
+      ? BRL(shippingCents)
+      : "Grátis";
   const subtotal = total();
   const selectedPay = payMethods.find((m) => m.key === payMethod);
   const feeCents = feeCentsForPct(
@@ -423,7 +443,7 @@ export default function CheckoutPage() {
                     {o.label}
                   </span>
                   <span className="text-gold">
-                    {o.cents > 0 ? BRL(o.cents) : "Grátis"}
+                    {o.key === PICKUP_KEY ? "Grátis" : deliveryPriceLabel}
                   </span>
                 </span>
                 <span className="pl-7 text-xs text-cream/50">{o.eta}</span>
@@ -490,10 +510,23 @@ export default function CheckoutPage() {
                 />
               </div>
 
-              {form.cep.replace(/\D/g, "").length === 8 && selectedOption && (
-                <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
-                  Frete <strong>{BRL(shippingCents)}</strong> · {selectedOption.eta}.
-                </p>
+              {cityKnown && !isPickup && (
+                deliveryQuote ? (
+                  <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
+                    Entrega fora de Campo Grande: frete{" "}
+                    <strong>{QUOTE_LABEL.toLowerCase()}</strong>. Você paga só os
+                    produtos agora — combinamos o valor do frete no WhatsApp. 📦
+                  </p>
+                ) : cityIsCG ? (
+                  <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
+                    Entrega em Campo Grande: <strong>grátis</strong> · receba em
+                    até 24h. 🛵
+                  </p>
+                ) : (
+                  <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
+                    Frete <strong>{BRL(shippingCents)}</strong> para {form.city}.
+                  </p>
+                )
               )}
             </>
           )}
@@ -594,9 +627,14 @@ export default function CheckoutPage() {
           <div className="mt-2 flex justify-between text-sm text-cream/70">
             <span>{isPickup ? "Retirada no local" : "Entrega"}</span>
             <span className="text-gold">
-              {shippingCents > 0 ? BRL(shippingCents) : "Grátis"}
+              {isPickup ? "Grátis" : deliveryPriceLabel}
             </span>
           </div>
+          {deliveryQuote && (
+            <p className="mt-1 text-xs text-cream/45">
+              Frete a combinar — cobrado à parte após confirmação no WhatsApp.
+            </p>
+          )}
           {feeCents > 0 && (
             <div className="mt-2 flex justify-between text-sm text-cream/70">
               <span>Taxa de pagamento</span>

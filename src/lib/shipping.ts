@@ -2,13 +2,25 @@ import { hasSupabase } from "./env";
 import { getSupabaseAdmin } from "./supabase/server";
 import { T } from "./tables";
 import { parsePct, PAY_METHODS, type PayMethod } from "./payments";
+import {
+  PICKUP_KEY,
+  DELIVERY_KEY,
+  DELIVERY_QUOTE_KEY,
+  QUOTE_LABEL,
+  isCampoGrande,
+} from "./shipping-city";
 
-/** Taxa de entrega padrão (em reais), ajustável no painel. */
-export const DELIVERY_FEE_DEFAULT = "15,00";
+// Reexporta as chaves/helpers puros para quem importa de "@/lib/shipping".
+export {
+  PICKUP_KEY,
+  DELIVERY_KEY,
+  DELIVERY_QUOTE_KEY,
+  QUOTE_LABEL,
+  isCampoGrande,
+} from "./shipping-city";
 
-/** Chaves de entrega usadas em todo o app. */
-export const DELIVERY_KEY = "delivery";
-export const PICKUP_KEY = "pickup";
+/** Chave de setting do frete cobrado FORA de Campo Grande. */
+export const OUT_FEE_KEY = "ship_out_fee";
 
 export interface ShipOption {
   key: string;
@@ -19,9 +31,26 @@ export interface ShipOption {
 }
 
 export interface ShippingConfig {
-  /** Valor da entrega (frete fixo) em centavos. */
-  deliveryCents: number;
+  /** Entrega dentro de Campo Grande em centavos (hoje sempre 0 = grátis). */
+  cgDeliveryCents: number;
+  /**
+   * Frete FORA de Campo Grande em centavos, ou `null` quando não há valor
+   * definido no painel — nesse caso o frete fica "A combinar".
+   */
+  outDeliveryCents: number | null;
   options: ShipOption[];
+}
+
+/** Frete já resolvido para uma cidade específica. */
+export interface ResolvedShipping {
+  /** Método que fica gravado no pedido: pickup / delivery / delivery_quote. */
+  method: string;
+  /** Valor cobrado agora (0 quando grátis ou "a combinar"). */
+  cents: number;
+  /** true quando o frete é "A combinar" (sem valor fixo, acertado depois). */
+  quote: boolean;
+  /** Rótulo curto para exibição. */
+  label: string;
 }
 
 /** Converte "25,00" / "25.00" / "R$ 25" em centavos. */
@@ -29,6 +58,17 @@ export function reaisToCents(v: string | undefined | null): number {
   if (!v) return 0;
   const n = Number(String(v).replace(/[^0-9.,]/g, "").replace(",", "."));
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
+}
+
+/**
+ * Lê o frete de fora de Campo Grande do painel.
+ * Vazio / sem dígitos ("a combinar") → `null`. Com número → centavos.
+ */
+export function parseOutFee(v: string | undefined | null): number | null {
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (s === "" || !/\d/.test(s)) return null;
+  return reaisToCents(s);
 }
 
 /** Lê a configuração de entrega a partir das settings (ou usa padrões). */
@@ -39,9 +79,8 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
     const { data } = await sb.from(T.settings).select("key, value");
     map = new Map((data ?? []).map((s) => [s.key, s.value]));
   }
-  const deliveryCents = reaisToCents(
-    map.get("delivery_fee") ?? DELIVERY_FEE_DEFAULT
-  );
+  const cgDeliveryCents = 0; // Campo Grande: entrega sempre grátis.
+  const outDeliveryCents = parseOutFee(map.get(OUT_FEE_KEY));
 
   const options: ShipOption[] = [
     {
@@ -53,12 +92,49 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
     {
       key: DELIVERY_KEY,
       label: "Entrega",
-      cents: deliveryCents,
-      eta: "Receba em até 24h",
+      cents: cgDeliveryCents,
+      eta: "Grátis em Campo Grande · receba em até 24h",
     },
   ];
 
-  return { deliveryCents, options };
+  return { cgDeliveryCents, outDeliveryCents, options };
+}
+
+/**
+ * Resolve o frete para uma cidade: Campo Grande é grátis; fora usa o valor do
+ * painel, ou "A combinar" quando não há valor definido. Retirada é sempre 0.
+ * Usado no servidor (checkout, autoritativo) e espelhado no cliente.
+ */
+export function resolveShipping(
+  cfg: ShippingConfig,
+  method: string | undefined | null,
+  city: string | undefined | null
+): ResolvedShipping {
+  if (isPickup(method)) {
+    return { method: PICKUP_KEY, cents: 0, quote: false, label: "Retirada no local" };
+  }
+  if (isCampoGrande(city)) {
+    return {
+      method: DELIVERY_KEY,
+      cents: cfg.cgDeliveryCents,
+      quote: false,
+      label: "Entrega em Campo Grande",
+    };
+  }
+  if (cfg.outDeliveryCents == null) {
+    return {
+      method: DELIVERY_QUOTE_KEY,
+      cents: 0,
+      quote: true,
+      label: `Entrega (frete ${QUOTE_LABEL.toLowerCase()})`,
+    };
+  }
+  return {
+    method: DELIVERY_KEY,
+    cents: cfg.outDeliveryCents,
+    quote: false,
+    label: "Entrega fora de Campo Grande",
+  };
 }
 
 /** A chave de entrega escolhida é retirada no local? */
