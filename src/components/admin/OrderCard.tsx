@@ -4,6 +4,7 @@ import { OrderTracking } from "./OrderTracking";
 import { ConfirmButton } from "./ConfirmButton";
 import { cancelOrder, deleteOrder } from "@/app/admin/actions";
 import { formatDateTimeBR, formatPlainDateBR } from "@/lib/timezone";
+import { DELIVERY_QUOTE_KEY, QUOTE_LABEL } from "@/lib/shipping-city";
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   pending: {
@@ -122,9 +123,11 @@ export function OrderCard({ o }: { o: OrderRow }) {
             <br />
             <span className="text-cream/55">
               Frete:{" "}
-              {o.shipping_cents
-                ? `${BRL(o.shipping_cents)} (${o.shipping_method ?? "-"})`
-                : "Grátis"}
+              {o.shipping_method === DELIVERY_QUOTE_KEY
+                ? `${QUOTE_LABEL} (fora de Campo Grande)`
+                : o.shipping_cents
+                  ? `${BRL(o.shipping_cents)} (${o.shipping_method ?? "-"})`
+                  : "Grátis"}
             </span>
           </p>
         </div>

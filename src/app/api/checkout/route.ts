@@ -6,9 +6,8 @@ import { createNupayPayment } from "@/lib/nupay";
 import { createMercadoPagoPreference } from "@/lib/mercadopago";
 import {
   isPickup,
-  PICKUP_KEY,
-  getPaymentMethods,
   resolveShipping,
+  getPaymentMethods,
 } from "@/lib/shipping";
 import { cartWeightGrams } from "@/lib/correios";
 import { feeCentsForPct } from "@/lib/payments";
@@ -106,14 +105,16 @@ export async function POST(req: NextRequest) {
     0
   );
 
-  // ---- Frete (validado no servidor; recalculado nos Correios quando aplicável) ----
+  // ---- Frete (validado no servidor; fonte da verdade) ----
+  // Campo Grande é grátis; fora de CG recalcula nos Correios quando configurado,
+  // senão usa o valor do painel ou fica "a combinar" (a loja acerta depois).
   const weightGrams = cartWeightGrams(
     lines.map((l) => ({ weight_g: l.product.weight_g, qty: l.qty }))
   );
-  const chosen = await resolveShipping(shippingMethod, address?.cep ?? "", weightGrams);
-  const shippingCents = chosen.cents;
-  const shippingLabel = chosen.label;
-  const shippingMethodKey = chosen.method;
+  const ship = await resolveShipping(shippingMethod, address, weightGrams);
+  const shippingCents = ship.cents;
+  const shippingLabel = ship.label;
+  const shippingMethodStored = ship.method;
 
   // ---- Taxa da forma de pagamento (repassada ao cliente) ----
   const payMethods = await getPaymentMethods();
@@ -184,7 +185,7 @@ export async function POST(req: NextRequest) {
         status: "pending",
         total_cents: totalCents,
         shipping_cents: shippingCents,
-        shipping_method: pickup ? PICKUP_KEY : shippingMethodKey,
+        shipping_method: shippingMethodStored,
         reference_id: referenceId,
         customer_name: customer.name,
         customer_phone: customerPhone,

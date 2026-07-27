@@ -2,6 +2,7 @@ import { env, hasUazapi, hasSupabase } from "./env";
 import { getSupabaseAdmin } from "./supabase/server";
 import { getContent } from "./content";
 import { isPickup } from "./shipping";
+import { DELIVERY_QUOTE_KEY } from "./shipping-city";
 import { T } from "./tables";
 
 /**
@@ -123,7 +124,9 @@ export async function notifyStoreOrderPaid(
   const itemsLine = await orderItemsLine(order.id);
   const entrega = isPickup(order.shipping_method)
     ? "Retirada no local"
-    : "Entrega";
+    : order.shipping_method === DELIVERY_QUOTE_KEY
+      ? "Entrega · frete A COMBINAR (fora de Campo Grande)"
+      : "Entrega";
   const cliente = order.customer_name?.trim() || "—";
   const fone = order.customer_phone?.trim();
 

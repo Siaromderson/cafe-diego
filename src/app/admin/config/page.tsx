@@ -30,8 +30,15 @@ export default async function AdminConfig() {
           </p>
           <ul className="ml-4 list-disc space-y-0.5">
             <li>
-              <strong>Taxa de entrega:</strong> valor fixo cobrado quando o
-              cliente pede entrega. Na retirada no local não há custo.
+              <strong>Campo Grande:</strong> entrega é sempre{" "}
+              <strong>grátis</strong>. Retirada no local também não tem custo.
+            </li>
+            <li>
+              <strong>Frete fora de Campo Grande:</strong> deixe{" "}
+              <strong>vazio</strong> para aparecer como{" "}
+              <strong>“A combinar”</strong> (você acerta o valor com o cliente
+              depois). Se preencher um valor, ele passa a ser cobrado no checkout
+              e mostrado no site automaticamente.
             </li>
             <li>
               <strong>WhatsApp:</strong> número de contato (só números, com DDD).
@@ -42,10 +49,10 @@ export default async function AdminConfig() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <SettingField
-          settingKey="delivery_fee"
-          label="Taxa de entrega (R$)"
-          hint="Ex: 15,00 · retirada no local é sempre grátis"
-          value={map.get("delivery_fee") ?? "15,00"}
+          settingKey="ship_out_fee"
+          label="Frete fora de Campo Grande (R$)"
+          hint="Vazio = “A combinar”. Ex: 25,00 — aparece no checkout e no site. Em Campo Grande é sempre grátis."
+          value={map.get("ship_out_fee") ?? ""}
         />
         <SettingField
           settingKey="whatsapp"

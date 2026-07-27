@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 interface QuoteBody {
   cep?: string;
+  city?: string;
   items?: { id: string; qty: number }[];
 }
 
@@ -38,7 +39,8 @@ export async function POST(req: Request) {
     .filter(Boolean) as { weight_g: number; qty: number }[];
 
   const weightGrams = cartWeightGrams(lines);
-  const options = await getShippingQuote(cep, weightGrams);
+  const city = typeof body.city === "string" ? body.city : undefined;
+  const options = await getShippingQuote(cep, weightGrams, city);
 
   return NextResponse.json({ options });
 }
