@@ -106,8 +106,8 @@ export async function POST(req: NextRequest) {
   );
 
   // ---- Frete (validado no servidor; fonte da verdade) ----
-  // Campo Grande é grátis; fora de CG recalcula nos Correios quando configurado,
-  // senão usa o valor do painel ou fica "a combinar" (a loja acerta depois).
+  // Método calculado dos Correios (fora de CG) recalcula o preço real; nos demais
+  // casos segue a opção do checkout (CG grátis, "a combinar" ou valor do painel).
   const weightGrams = cartWeightGrams(
     lines.map((l) => ({ weight_g: l.product.weight_g, qty: l.qty }))
   );

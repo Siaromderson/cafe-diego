@@ -82,6 +82,7 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
   }
   const cgDeliveryCents = 0; // Campo Grande: entrega sempre grátis.
   const outDeliveryCents = parseOutFee(map.get(OUT_FEE_KEY));
+  const outHasFee = outDeliveryCents != null;
 
   const options: ShipOption[] = [
     {
@@ -92,9 +93,17 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
     },
     {
       key: DELIVERY_KEY,
-      label: "Entrega",
+      label: "Entrega grátis",
       cents: cgDeliveryCents,
-      eta: "Grátis em Campo Grande · receba em até 24h",
+      eta: "Em Campo Grande · receba em até 24h",
+    },
+    {
+      key: DELIVERY_QUOTE_KEY,
+      label: outHasFee ? "Entrega fora de Campo Grande" : "Entrega a combinar",
+      cents: outDeliveryCents ?? 0,
+      eta: outHasFee
+        ? "Fora de Campo Grande"
+        : "Fora de Campo Grande · combinamos o frete no WhatsApp",
     },
   ];
 
@@ -102,40 +111,41 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
 }
 
 /**
- * Resolve o frete SÓ pela cidade: Campo Grande é grátis; fora usa o valor do
- * painel, ou "A combinar" quando não há valor definido. Retirada é sempre 0.
- * É a base de degradação graciosa — usada quando os Correios não entram
- * (retirada, Campo Grande, sem credenciais ou método não calculado).
+ * Resolve o frete pela opção escolhida no checkout (base de degradação graciosa,
+ * usada quando os Correios não entram — retirada, entrega grátis em Campo Grande
+ * ou entrega fora de CG):
+ *  - retirada / entrega em Campo Grande → grátis;
+ *  - entrega fora de Campo Grande → valor do painel, ou "A combinar" quando
+ *    não há valor definido (cobra só os produtos e acerta o frete depois).
  */
 export function resolveCityShipping(
   cfg: ShippingConfig,
-  method: string | undefined | null,
-  city: string | undefined | null
+  method: string | undefined | null
 ): ResolvedShipping {
   if (isPickup(method)) {
     return { method: PICKUP_KEY, cents: 0, quote: false, label: "Retirada no local" };
   }
-  if (isCampoGrande(city)) {
-    return {
-      method: DELIVERY_KEY,
-      cents: cfg.cgDeliveryCents,
-      quote: false,
-      label: "Entrega em Campo Grande",
-    };
-  }
-  if (cfg.outDeliveryCents == null) {
+  if (method === DELIVERY_QUOTE_KEY) {
+    if (cfg.outDeliveryCents == null) {
+      return {
+        method: DELIVERY_QUOTE_KEY,
+        cents: 0,
+        quote: true,
+        label: `Entrega (frete ${QUOTE_LABEL.toLowerCase()})`,
+      };
+    }
     return {
       method: DELIVERY_QUOTE_KEY,
-      cents: 0,
-      quote: true,
-      label: `Entrega (frete ${QUOTE_LABEL.toLowerCase()})`,
+      cents: cfg.outDeliveryCents,
+      quote: false,
+      label: "Entrega fora de Campo Grande",
     };
   }
   return {
     method: DELIVERY_KEY,
-    cents: cfg.outDeliveryCents,
+    cents: cfg.cgDeliveryCents,
     quote: false,
-    label: "Entrega fora de Campo Grande",
+    label: "Entrega em Campo Grande",
   };
 }
 
@@ -187,11 +197,10 @@ export async function getShippingQuote(
 
 /**
  * Resolve o frete no servidor (fonte da verdade — o preço nunca vem do cliente).
- * Compõe as duas regras:
- *  - Retirada e Campo Grande seguem a regra da cidade (grátis).
- *  - Fora de Campo Grande, quando os Correios estão configurados e o método é
- *    um serviço calculado (SEDEX/PAC), recalcula o preço real nos Correios.
- *  - Nos demais casos cai na regra da cidade (valor do painel ou "A combinar").
+ *  - Método calculado dos Correios (SEDEX/PAC, fora de Campo Grande) com
+ *    credenciais: usa o preço real recalculado nos Correios.
+ *  - Demais casos: segue a opção escolhida no checkout (retirada / entrega
+ *    grátis em CG / entrega a combinar ou valor do painel fora de CG).
  */
 export async function resolveShipping(
   method: string | undefined | null,
@@ -199,17 +208,14 @@ export async function resolveShipping(
   weightGrams: number
 ): Promise<ResolvedShipping> {
   const cfg = await getShippingConfig();
-  const city = address?.city;
 
-  // Retirada ou Campo Grande: sempre pela cidade (grátis), sem Correios.
-  if (isPickup(method) || isCampoGrande(city)) {
-    return resolveCityShipping(cfg, method, city);
-  }
-
-  // Fora de CG: se os Correios respondem e o método é um serviço calculado,
-  // usa o preço real recalculado no servidor.
+  // Fora de CG com Correios configurado e método calculado: preço real.
   if (hasCorreios && (method ?? "").startsWith(CORREIOS_PREFIX)) {
-    const options = await getShippingQuote(address?.cep ?? "", weightGrams, city);
+    const options = await getShippingQuote(
+      address?.cep ?? "",
+      weightGrams,
+      address?.city
+    );
     const chosen = options.find((o) => o.key === method);
     if (chosen && chosen.key.startsWith(CORREIOS_PREFIX)) {
       return {
@@ -221,8 +227,8 @@ export async function resolveShipping(
     }
   }
 
-  // Sem Correios (ou método não calculado): regra da cidade — painel/"A combinar".
-  return resolveCityShipping(cfg, method, city);
+  // Opção explícita do checkout (retirada / CG grátis / a combinar / painel).
+  return resolveCityShipping(cfg, method);
 }
 
 /** A chave de entrega escolhida é retirada no local? */

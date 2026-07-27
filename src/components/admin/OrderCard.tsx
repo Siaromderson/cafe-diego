@@ -124,7 +124,9 @@ export function OrderCard({ o }: { o: OrderRow }) {
             <span className="text-cream/55">
               Frete:{" "}
               {o.shipping_method === DELIVERY_QUOTE_KEY
-                ? `${QUOTE_LABEL} (fora de Campo Grande)`
+                ? o.shipping_cents
+                  ? `${BRL(o.shipping_cents)} (fora de Campo Grande)`
+                  : `${QUOTE_LABEL} (fora de Campo Grande)`
                 : o.shipping_cents
                   ? `${BRL(o.shipping_cents)} (${o.shipping_method ?? "-"})`
                   : "Grátis"}
