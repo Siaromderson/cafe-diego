@@ -7,7 +7,6 @@ import {
   DELIVERY_KEY,
   DELIVERY_QUOTE_KEY,
   QUOTE_LABEL,
-  isCampoGrande,
 } from "./shipping-city";
 
 // Reexporta as chaves/helpers puros para quem importa de "@/lib/shipping".
@@ -81,6 +80,7 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
   }
   const cgDeliveryCents = 0; // Campo Grande: entrega sempre grátis.
   const outDeliveryCents = parseOutFee(map.get(OUT_FEE_KEY));
+  const outHasFee = outDeliveryCents != null;
 
   const options: ShipOption[] = [
     {
@@ -91,9 +91,17 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
     },
     {
       key: DELIVERY_KEY,
-      label: "Entrega",
+      label: "Entrega grátis",
       cents: cgDeliveryCents,
-      eta: "Grátis em Campo Grande · receba em até 24h",
+      eta: "Em Campo Grande · receba em até 24h",
+    },
+    {
+      key: DELIVERY_QUOTE_KEY,
+      label: outHasFee ? "Entrega fora de Campo Grande" : "Entrega a combinar",
+      cents: outDeliveryCents ?? 0,
+      eta: outHasFee
+        ? "Fora de Campo Grande"
+        : "Fora de Campo Grande · combinamos o frete no WhatsApp",
     },
   ];
 
@@ -101,39 +109,39 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
 }
 
 /**
- * Resolve o frete para uma cidade: Campo Grande é grátis; fora usa o valor do
- * painel, ou "A combinar" quando não há valor definido. Retirada é sempre 0.
- * Usado no servidor (checkout, autoritativo) e espelhado no cliente.
+ * Resolve o frete pela opção escolhida no checkout (autoritativo no servidor):
+ *  - retirada / entrega em Campo Grande → grátis;
+ *  - entrega fora de Campo Grande → valor do painel, ou "A combinar" quando
+ *    não há valor definido (cobra só os produtos e acerta o frete depois).
  */
 export function resolveShipping(
   cfg: ShippingConfig,
-  method: string | undefined | null,
-  city: string | undefined | null
+  method: string | undefined | null
 ): ResolvedShipping {
   if (isPickup(method)) {
     return { method: PICKUP_KEY, cents: 0, quote: false, label: "Retirada no local" };
   }
-  if (isCampoGrande(city)) {
-    return {
-      method: DELIVERY_KEY,
-      cents: cfg.cgDeliveryCents,
-      quote: false,
-      label: "Entrega em Campo Grande",
-    };
-  }
-  if (cfg.outDeliveryCents == null) {
+  if (method === DELIVERY_QUOTE_KEY) {
+    if (cfg.outDeliveryCents == null) {
+      return {
+        method: DELIVERY_QUOTE_KEY,
+        cents: 0,
+        quote: true,
+        label: `Entrega (frete ${QUOTE_LABEL.toLowerCase()})`,
+      };
+    }
     return {
       method: DELIVERY_QUOTE_KEY,
-      cents: 0,
-      quote: true,
-      label: `Entrega (frete ${QUOTE_LABEL.toLowerCase()})`,
+      cents: cfg.outDeliveryCents,
+      quote: false,
+      label: "Entrega fora de Campo Grande",
     };
   }
   return {
     method: DELIVERY_KEY,
-    cents: cfg.outDeliveryCents,
+    cents: cfg.cgDeliveryCents,
     quote: false,
-    label: "Entrega fora de Campo Grande",
+    label: "Entrega em Campo Grande",
   };
 }
 

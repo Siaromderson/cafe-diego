@@ -105,11 +105,11 @@ export async function POST(req: NextRequest) {
     0
   );
 
-  // ---- Frete (validado no servidor a partir das configurações e da cidade) ----
+  // ---- Frete (validado no servidor pela opção escolhida no checkout) ----
   // Campo Grande é grátis; fora de CG usa o valor do painel ou fica "a combinar"
   // (nesse caso não cobra agora — a loja acerta o frete depois).
   const shipConfig = await getShippingConfig();
-  const ship = resolveShipping(shipConfig, shippingMethod, address?.city);
+  const ship = resolveShipping(shipConfig, shippingMethod);
   const shippingCents = ship.cents;
   const shippingLabel = ship.label;
   const shippingMethodStored = ship.method;

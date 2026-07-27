@@ -14,7 +14,7 @@ import { hasSupabase } from "@/lib/env";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import {
   PICKUP_KEY,
-  isCampoGrande,
+  DELIVERY_QUOTE_KEY,
   QUOTE_LABEL,
 } from "@/lib/shipping-city";
 
@@ -240,19 +240,17 @@ export default function CheckoutPage() {
   }
 
   const isPickup = shipMethod === PICKUP_KEY;
-  // Frete por cidade: Campo Grande é grátis; fora usa o valor do painel, e
-  // quando não há valor definido fica "A combinar" (paga só os produtos agora).
-  const cityKnown = form.city.trim().length > 0;
-  const cityIsCG = isCampoGrande(form.city);
-  const isOutbound = !isPickup && cityKnown && !cityIsCG;
+  // Frete pela opção escolhida: retirada e entrega em Campo Grande são grátis;
+  // "Entrega a combinar" (fora de CG) usa o valor do painel, ou fica "A combinar"
+  // quando não há valor definido (paga só os produtos agora).
+  const isOutbound = shipMethod === DELIVERY_QUOTE_KEY;
   const deliveryQuote = isOutbound && outDeliveryCents == null;
   const shippingCents = isOutbound && outDeliveryCents != null ? outDeliveryCents : 0;
-  // Rótulo do frete de entrega (usado no card da opção e no resumo).
-  const deliveryPriceLabel = deliveryQuote
-    ? QUOTE_LABEL
-    : shippingCents > 0
-      ? BRL(shippingCents)
-      : "Grátis";
+  /** Preço mostrado ao lado de cada opção de entrega. */
+  const priceForOption = (key: string) => {
+    if (key !== DELIVERY_QUOTE_KEY) return "Grátis";
+    return outDeliveryCents == null ? QUOTE_LABEL : BRL(outDeliveryCents);
+  };
   const subtotal = total();
   const selectedPay = payMethods.find((m) => m.key === payMethod);
   const feeCents = feeCentsForPct(
@@ -442,9 +440,7 @@ export default function CheckoutPage() {
                     />
                     {o.label}
                   </span>
-                  <span className="text-gold">
-                    {o.key === PICKUP_KEY ? "Grátis" : deliveryPriceLabel}
-                  </span>
+                  <span className="text-gold">{priceForOption(o.key)}</span>
                 </span>
                 <span className="pl-7 text-xs text-cream/50">{o.eta}</span>
               </label>
@@ -510,24 +506,25 @@ export default function CheckoutPage() {
                 />
               </div>
 
-              {cityKnown && !isPickup && (
-                deliveryQuote ? (
+              {!isOutbound && (
+                <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
+                  Entrega em Campo Grande: <strong>grátis</strong> · receba em
+                  até 24h. 🛵
+                </p>
+              )}
+              {isOutbound &&
+                (deliveryQuote ? (
                   <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
                     Entrega fora de Campo Grande: frete{" "}
                     <strong>{QUOTE_LABEL.toLowerCase()}</strong>. Você paga só os
                     produtos agora — combinamos o valor do frete no WhatsApp. 📦
                   </p>
-                ) : cityIsCG ? (
-                  <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
-                    Entrega em Campo Grande: <strong>grátis</strong> · receba em
-                    até 24h. 🛵
-                  </p>
                 ) : (
                   <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
-                    Frete <strong>{BRL(shippingCents)}</strong> para {form.city}.
+                    Entrega fora de Campo Grande: frete{" "}
+                    <strong>{BRL(shippingCents)}</strong>.
                   </p>
-                )
-              )}
+                ))}
             </>
           )}
 
@@ -625,9 +622,15 @@ export default function CheckoutPage() {
             <span className="text-cream/90">{BRL(subtotal)}</span>
           </div>
           <div className="mt-2 flex justify-between text-sm text-cream/70">
-            <span>{isPickup ? "Retirada no local" : "Entrega"}</span>
+            <span>
+              {isPickup
+                ? "Retirada no local"
+                : isOutbound
+                  ? "Entrega (fora de Campo Grande)"
+                  : "Entrega"}
+            </span>
             <span className="text-gold">
-              {isPickup ? "Grátis" : deliveryPriceLabel}
+              {isPickup ? "Grátis" : priceForOption(shipMethod)}
             </span>
           </div>
           {deliveryQuote && (
