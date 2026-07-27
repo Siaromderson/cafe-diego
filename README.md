@@ -43,6 +43,34 @@ página de checkout**, sem ser redirecionado para outro site. Em `.env.local`:
 > Sem a chave pública, o checkout volta ao modo antigo (redirecionamento externo
 > para o Mercado Pago).
 
+## Frete e rastreio pelos Correios
+
+A loja calcula **SEDEX e PAC** pelo CEP no checkout e mostra o **rastreio** dos
+pedidos (para o cliente em *Minhas compras* e para você no painel). Usa a API
+oficial dos Correios (CWS — `api.correios.com.br`), que exige **contrato** e
+**cartão de postagem**.
+
+1. Rode a migration `supabase/add_correios.sql` (adiciona `tracking_code` no
+   pedido).
+2. No *Meu Correios* → *Gerar Código de Acesso à API*, gere o código de acesso.
+3. Preencha em `.env.local` / Vercel:
+   - `CORREIOS_USER` — seu usuário do Meu Correios
+   - `CORREIOS_ACCESS_CODE` — código de acesso gerado para a API
+   - `CORREIOS_CARTAO_POSTAGEM` — número do cartão de postagem
+   - `CORREIOS_CEP_ORIGEM` — CEP de onde os pedidos são postados (só números)
+   - `CORREIOS_CONTRATO` — (opcional) número do contrato
+   - `CORREIOS_SEDEX_CODE` / `CORREIOS_PAC_CODE` — (opcional) códigos de serviço
+     do seu contrato. Padrões: `03220` (SEDEX) e `03298` (PAC)
+   - `CORREIOS_BASE_URL` — (opcional) padrão `https://api.correios.com.br`
+
+> **Sem essas chaves, nada quebra:** o checkout continua com o **frete fixo**
+> definido em *Configurações* e o rastreio fica desativado. Qualquer
+> indisponibilidade dos Correios também cai automaticamente no frete fixo — a
+> venda nunca trava.
+
+Depois de postar um pedido, cole o **código de rastreio** no card do pedido em
+`/admin`; o cliente passa a ver o botão *Rastrear* na área dele.
+
 ## Aviso de pedido no WhatsApp
 
 Quando um cliente finaliza um pedido, a loja pode receber uma mensagem
@@ -67,6 +95,32 @@ painel do Mercado Pago (*Webhooks*), assinando o evento **Pagamentos**.
 > Se houver chaves NuPay configuradas e nenhuma do Mercado Pago, a loja usa a
 > NuPay como fallback. Sem nenhuma das duas, o checkout entra em modo
 > demonstração (pagamento simulado).
+
+### Aviso de pedido **não pago**
+
+Além do aviso de venda, a loja é avisada quando alguém **faz um pedido e não
+paga** — para o vendedor entrar em contato. O aviso vai **só para o número da
+loja**; nada é enviado ao cliente. Duas frentes, ambas idempotentes (um aviso
+por pedido):
+
+- **Tempo real:** quando o pagamento volta recusado/expirado nos webhooks
+  (Mercado Pago / NuPay), a loja é avisada na hora.
+- **Abandonados:** a varredura `GET /api/cron/pending-orders` avisa os pedidos
+  que ficaram `pending` além da janela configurada. Está agendada **1x/dia** no
+  `vercel.json` (compatível com o plano Hobby; no Pro dá pra aumentar a
+  frequência, ex.: `0 * * * *` para de hora em hora).
+- **Teste/manual:** em **Configurações → Avisar pendentes**, o admin dispara
+  agora todos os pedidos pendentes para o WhatsApp da loja.
+
+Rode a migration `supabase/add_unpaid_notify.sql` (coluna `unpaid_notified_at`)
+e configure no servidor:
+
+| Variável | Descrição |
+|----------|-----------|
+| `UAZAPI_URL`, `UAZAPI_TOKEN` | Instância do WhatsApp (mesmas do aviso de venda). |
+| `UAZAPI_NOTIFY_NUMBER` | (opcional) número que recebe os avisos; se vazio, usa o WhatsApp da loja do painel. |
+| `CRON_SECRET` | Protege o endpoint do cron (a Vercel envia `Authorization: Bearer <CRON_SECRET>`). Sem ele, a varredura fica desligada. |
+| `PENDING_NOTIFY_MINUTES` | Minutos que o pedido precisa estar `pending` para virar aviso (padrão `30`). |
 
 ## Estrutura
 

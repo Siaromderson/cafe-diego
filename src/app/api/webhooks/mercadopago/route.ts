@@ -7,7 +7,7 @@ import {
   isValidSignature,
 } from "@/lib/mercadopago";
 import { T } from "@/lib/tables";
-import { notifyStoreOrderPaid } from "@/lib/whatsapp";
+import { notifyStoreOrderPaid, notifyStoreUnpaidOnce } from "@/lib/whatsapp";
 
 /**
  * Webhook de notificações do Mercado Pago.
@@ -78,10 +78,15 @@ export async function POST(req: NextRequest) {
     .neq("status", "paid")
     .select("id, reference_id, customer_name, customer_phone, total_cents, shipping_method");
 
-  const paidNow = changed?.[0];
-  if (status === "paid" && paidNow) {
-    // Aviso no WhatsApp da loja. Não pode quebrar o webhook: sempre 200.
-    await notifyStoreOrderPaid(paidNow).catch(() => {});
+  // Aviso no WhatsApp da loja (nunca ao cliente). Não pode quebrar o webhook:
+  // sempre 200. Pago -> aviso de venda; recusado/expirado -> aviso de não pago.
+  const changedRow = changed?.[0];
+  if (changedRow) {
+    if (status === "paid") {
+      await notifyStoreOrderPaid(changedRow).catch(() => {});
+    } else if (status === "canceled") {
+      await notifyStoreUnpaidOnce(changedRow, "canceled").catch(() => {});
+    }
   }
 
   return NextResponse.json({ ok: true });

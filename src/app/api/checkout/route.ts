@@ -5,11 +5,11 @@ import { getProducts } from "@/lib/products-repo";
 import { createNupayPayment } from "@/lib/nupay";
 import { createMercadoPagoPreference } from "@/lib/mercadopago";
 import {
-  getShippingConfig,
   isPickup,
   resolveShipping,
   getPaymentMethods,
 } from "@/lib/shipping";
+import { cartWeightGrams } from "@/lib/correios";
 import { feeCentsForPct } from "@/lib/payments";
 import { isValidBrazilPhone, phoneForSubmit } from "@/lib/phone";
 import { T } from "@/lib/tables";
@@ -105,11 +105,13 @@ export async function POST(req: NextRequest) {
     0
   );
 
-  // ---- Frete (validado no servidor pela opção escolhida no checkout) ----
-  // Campo Grande é grátis; fora de CG usa o valor do painel ou fica "a combinar"
-  // (nesse caso não cobra agora — a loja acerta o frete depois).
-  const shipConfig = await getShippingConfig();
-  const ship = resolveShipping(shipConfig, shippingMethod);
+  // ---- Frete (validado no servidor; fonte da verdade) ----
+  // Método calculado dos Correios (fora de CG) recalcula o preço real; nos demais
+  // casos segue a opção do checkout (CG grátis, "a combinar" ou valor do painel).
+  const weightGrams = cartWeightGrams(
+    lines.map((l) => ({ weight_g: l.product.weight_g, qty: l.qty }))
+  );
+  const ship = await resolveShipping(shippingMethod, address, weightGrams);
   const shippingCents = ship.cents;
   const shippingLabel = ship.label;
   const shippingMethodStored = ship.method;

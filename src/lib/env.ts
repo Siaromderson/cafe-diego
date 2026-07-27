@@ -20,7 +20,27 @@ export const env = {
   uazapiUrl: (process.env.UAZAPI_URL ?? "").replace(/\/+$/, ""),
   uazapiToken: process.env.UAZAPI_TOKEN ?? "",
   uazapiNotify: process.env.UAZAPI_NOTIFY_NUMBER ?? "",
+  // Correios (CWS — api.correios.com.br). Cálculo de frete (preço/prazo) e
+  // rastreamento. Exige contrato + cartão de postagem. Sem essas chaves a loja
+  // continua com o frete fixo definido no painel.
+  correiosBase: (process.env.CORREIOS_BASE_URL ?? "https://api.correios.com.br").replace(/\/+$/, ""),
+  correiosUser: process.env.CORREIOS_USER ?? "",
+  // Código de acesso à API (gerado no "Meu Correios" → "Gerar Código de Acesso").
+  correiosAccessCode: process.env.CORREIOS_ACCESS_CODE ?? "",
+  correiosCartaoPostagem: process.env.CORREIOS_CARTAO_POSTAGEM ?? "",
+  correiosContrato: process.env.CORREIOS_CONTRATO ?? "",
+  // CEP de onde os pedidos são postados (origem do frete). Só números.
+  correiosCepOrigem: (process.env.CORREIOS_CEP_ORIGEM ?? "").replace(/\D/g, ""),
+  // Códigos de serviço (variam por contrato). Padrões "à vista" mais comuns.
+  correiosSedexCode: process.env.CORREIOS_SEDEX_CODE ?? "03220",
+  correiosPacCode: process.env.CORREIOS_PAC_CODE ?? "03298",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  // Aviso automático de pedido NÃO pago (varredura do cron). cronSecret protege
+  // o endpoint /api/cron/pending-orders (a Vercel envia `Authorization: Bearer
+  // <CRON_SECRET>` nas execuções agendadas). pendingNotifyMinutes = há quantos
+  // minutos o pedido precisa estar "pending" (abandonado) para gerar o aviso.
+  cronSecret: process.env.CRON_SECRET ?? "",
+  pendingNotifyMinutes: Number(process.env.PENDING_NOTIFY_MINUTES ?? "30"),
 };
 
 /** A loja funciona sem Supabase usando o catálogo estático até as chaves entrarem. */
@@ -34,3 +54,13 @@ export const hasMercadoPagoEmbedded = Boolean(
 );
 /** Envio de WhatsApp via UAZAPI só liga quando host e token estão presentes. */
 export const hasUazapi = Boolean(env.uazapiUrl && env.uazapiToken);
+/**
+ * Integração com os Correios (frete calculado + rastreio). Só liga com as
+ * credenciais e o CEP de origem preenchidos; senão a loja usa o frete fixo.
+ */
+export const hasCorreios = Boolean(
+  env.correiosUser &&
+    env.correiosAccessCode &&
+    env.correiosCartaoPostagem &&
+    env.correiosCepOrigem
+);

@@ -10,8 +10,12 @@ type Result = { ok: boolean; message: string };
  */
 export function TestWhatsappButton({
   action,
+  label = "Enviar teste",
+  busyLabel = "Enviando…",
 }: {
   action: () => Promise<Result>;
+  label?: string;
+  busyLabel?: string;
 }) {
   const [pending, start] = useTransition();
   const [result, setResult] = useState<Result | null>(null);
@@ -37,7 +41,7 @@ export function TestWhatsappButton({
         disabled={pending}
         className="btn-gold rounded-full px-6 py-2.5 text-sm disabled:opacity-60"
       >
-        {pending ? "Enviando…" : "Enviar teste"}
+        {pending ? busyLabel : label}
       </button>
       {result && (
         <p

@@ -5,7 +5,7 @@ import { getSupabaseServer, getSupabaseAdmin } from "@/lib/supabase/server";
 import { getIsAdmin } from "@/lib/auth";
 import { T } from "@/lib/tables";
 import { hasUazapi } from "@/lib/env";
-import { sendTestToStore } from "@/lib/whatsapp";
+import { sendTestToStore, sweepPendingUnpaid } from "@/lib/whatsapp";
 import { whatsappDisplay } from "@/lib/content-data";
 import { normalizePhone } from "@/lib/phone";
 
@@ -49,6 +49,21 @@ export async function setOrderStatus(id: string, status: string) {
 /** Marca um pedido como cancelado (sai da lista de ativos, mas fica no histórico). */
 export async function cancelOrder(id: string) {
   return setOrderStatus(id, "canceled");
+}
+
+/**
+ * Salva (ou limpa) o código de rastreio dos Correios de um pedido. O cliente
+ * passa a ver o botão "Rastrear" na área "Minhas compras".
+ */
+export async function setOrderTracking(id: string, codeRaw: string) {
+  const sb = await guard();
+  const code = String(codeRaw || "").trim().toUpperCase();
+  await sb
+    .from(T.orders)
+    .update({ tracking_code: code || null })
+    .eq("id", id);
+  revalidatePath("/admin");
+  revalidatePath("/admin/entregues");
 }
 
 /** Apaga um pedido em definitivo (itens + pedido). */
@@ -234,6 +249,43 @@ export async function sendTestWhatsapp(): Promise<{
     message: `Falha ao enviar${
       r.status ? ` (HTTP ${r.status})` : ""
     }: ${detail}`,
+  };
+}
+
+/**
+ * Avisa a loja no WhatsApp sobre TODOS os pedidos ainda não pagos (pending).
+ * Usado pelo botão "Avisar pendentes" do admin — serve de teste do cenário e
+ * como ferramenta do dia a dia. Envia só para o número da loja; nada vai para
+ * o cliente (o vendedor entra em contato depois).
+ */
+export async function notifyPendingWhatsapp(): Promise<{
+  ok: boolean;
+  message: string;
+}> {
+  if (!(await getIsAdmin())) return { ok: false, message: "Não autorizado." };
+  if (!hasUazapi) {
+    return {
+      ok: false,
+      message:
+        "UAZAPI não configurada. Defina UAZAPI_URL e UAZAPI_TOKEN no servidor e reinicie.",
+    };
+  }
+
+  const r = await sweepPendingUnpaid({ force: true });
+  if (!r.ok) {
+    return {
+      ok: false,
+      message: `Falha ao avisar: ${r.error ?? "erro desconhecido"}`,
+    };
+  }
+  if (r.total === 0) {
+    return { ok: true, message: "Nenhum pedido pendente no momento. Nada a avisar." };
+  }
+
+  const dest = r.to ? ` para ${whatsappDisplay(r.to)}` : "";
+  return {
+    ok: true,
+    message: `${r.notified} de ${r.total} pedido(s) pendente(s) avisado(s)${dest}. Confira o WhatsApp.`,
   };
 }
 
