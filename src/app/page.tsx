@@ -25,6 +25,8 @@ export default async function Home() {
     shipping.outDeliveryCents == null
       ? QUOTE_LABEL.toLowerCase()
       : BRL(shipping.outDeliveryCents);
+  // Frete dentro de Campo Grande: grátis (0) ou o valor definido no painel.
+  const cgFree = shipping.cgDeliveryCents <= 0;
 
   return (
     <main className="relative">
@@ -131,8 +133,12 @@ export default async function Home() {
         </div>
         <div className="mx-auto mt-10 flex max-w-2xl flex-col items-center gap-2 rounded-3xl border border-gold/20 bg-gold/5 px-6 py-6 text-center">
           <p className="text-lg font-medium text-cream">
-            <span className="gold-text">Frete grátis em Campo Grande</span> · em
-            até 24h
+            <span className="gold-text">
+              {cgFree
+                ? "Frete grátis em Campo Grande"
+                : `Entrega em Campo Grande por ${BRL(shipping.cgDeliveryCents)}`}
+            </span>{" "}
+            · em até 24h
           </p>
           <p className="text-sm text-cream/65">
             Fora de Campo Grande, o frete fica{" "}

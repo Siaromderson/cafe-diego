@@ -74,11 +74,11 @@ export const CONTENT_DEFAULTS: SiteContent = {
     "Pix, débito ou crédito no checkout. Você cadastra o endereço na hora.",
   entregaStep3Title: "Receba em até 24h",
   entregaStep3Desc:
-    "Entrega grátis em Campo Grande — ou retire no local sem custo. Fora de Campo Grande, o frete é combinado com você. A gente leva até a sua porta.",
+    "Entregamos em Campo Grande — ou retire no local sem custo. Fora de Campo Grande, o frete é combinado com você. A gente leva até a sua porta.",
   footerTagline:
     "O verdadeiro café de feirante. 100% Arábica, torrado com cuidado artesanal em Campo Grande — MS.",
   footerDelivery:
-    "Entrega grátis em Campo Grande (em até 24h) ou retire no local sem custo. Fora de Campo Grande, frete a combinar. Pague no Pix, débito ou crédito.",
+    "Entrega em Campo Grande (em até 24h) ou retire no local sem custo. Fora de Campo Grande, frete a combinar. Pague no Pix, débito ou crédito.",
   contactInstagram: "@cafedofeirantems",
   contactAddress: "Rua Dr. Arthur Jorge 1602 · São Francisco",
   footerCredit: "Diego Ricardo Rodrigues · Campo Grande - MS",

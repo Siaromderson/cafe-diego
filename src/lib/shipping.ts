@@ -21,6 +21,15 @@ export {
 /** Chave de setting do frete cobrado FORA de Campo Grande. */
 export const OUT_FEE_KEY = "ship_out_fee";
 
+/** Chave de setting do frete cobrado DENTRO de Campo Grande. */
+export const CG_FEE_KEY = "ship_cg_fee";
+
+/**
+ * Frete padrão dentro de Campo Grande quando não há valor salvo no painel
+ * (R$ 15,00). Deixe o campo vazio no painel para entrega grátis.
+ */
+export const DEFAULT_CG_FEE_CENTS = 1500;
+
 export interface ShipOption {
   key: string;
   label: string;
@@ -30,7 +39,10 @@ export interface ShipOption {
 }
 
 export interface ShippingConfig {
-  /** Entrega dentro de Campo Grande em centavos (hoje sempre 0 = grátis). */
+  /**
+   * Entrega dentro de Campo Grande em centavos. Definido no painel
+   * (padrão R$ 15,00); 0 = grátis.
+   */
   cgDeliveryCents: number;
   /**
    * Frete FORA de Campo Grande em centavos, ou `null` quando não há valor
@@ -70,6 +82,16 @@ export function parseOutFee(v: string | undefined | null): number | null {
   return reaisToCents(s);
 }
 
+/**
+ * Lê o frete de dentro de Campo Grande do painel.
+ * Sem valor salvo (`undefined`) → padrão R$ 15,00. Campo vazio → grátis (0).
+ * Com número → centavos.
+ */
+export function parseCgFee(v: string | undefined | null): number {
+  if (v == null) return DEFAULT_CG_FEE_CENTS;
+  return reaisToCents(v);
+}
+
 /** Lê a configuração de entrega a partir das settings (ou usa padrões). */
 export async function getShippingConfig(): Promise<ShippingConfig> {
   let map = new Map<string, string>();
@@ -78,7 +100,8 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
     const { data } = await sb.from(T.settings).select("key, value");
     map = new Map((data ?? []).map((s) => [s.key, s.value]));
   }
-  const cgDeliveryCents = 0; // Campo Grande: entrega sempre grátis.
+  const cgDeliveryCents = parseCgFee(map.get(CG_FEE_KEY));
+  const cgHasFee = cgDeliveryCents > 0;
   const outDeliveryCents = parseOutFee(map.get(OUT_FEE_KEY));
   const outHasFee = outDeliveryCents != null;
 
@@ -91,9 +114,11 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
     },
     {
       key: DELIVERY_KEY,
-      label: "Entrega grátis",
+      label: cgHasFee ? "Entrega em Campo Grande" : "Entrega grátis",
       cents: cgDeliveryCents,
-      eta: "Em Campo Grande · receba em até 24h",
+      eta: cgHasFee
+        ? "Em Campo Grande · receba em até 24h"
+        : "Em Campo Grande · receba em até 24h, sem custo",
     },
     {
       key: DELIVERY_QUOTE_KEY,

@@ -10,6 +10,7 @@ import {
   resolveShipping,
   getPaymentMethods,
 } from "@/lib/shipping";
+import { notifyStoreOrderPlaced } from "@/lib/whatsapp";
 import { feeCentsForPct } from "@/lib/payments";
 import { isValidBrazilPhone, phoneForSubmit } from "@/lib/phone";
 import { T } from "@/lib/tables";
@@ -232,6 +233,17 @@ export async function POST(req: NextRequest) {
         await sb.from(T.addresses).insert({ customer_id: customerId, ...address });
       }
     }
+
+    // Avisa a loja no WhatsApp que um pedido foi feito (aguardando pagamento).
+    // Não pode quebrar o checkout: falha aqui é ignorada.
+    await notifyStoreOrderPlaced({
+      id: orderId,
+      reference_id: referenceId,
+      customer_name: customer.name,
+      customer_phone: customerPhone,
+      total_cents: totalCents,
+      shipping_method: shippingMethodStored,
+    }).catch(() => {});
   }
 
   // ---- Pagamento ----

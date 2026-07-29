@@ -86,12 +86,23 @@ export interface PaidOrderInfo {
   shipping_method?: string | null;
 }
 
+/** Momento do aviso: pedido recém-criado (aguardando pagamento) ou já pago. */
+export type OrderStage = "placed" | "paid";
+
+/** Cabeçalho da mensagem conforme o momento do pedido. */
+const STAGE_HEADER: Record<OrderStage, string> = {
+  placed: "🧾 *Novo pedido recebido!*\n_Aguardando pagamento_",
+  paid: "🛎️ *Novo pedido pago!*",
+};
+
 /**
- * Avisa a loja no WhatsApp que um pedido foi pago. Busca os itens do pedido
- * para compor a mensagem. Retorna o resultado do envio (nunca lança).
+ * Avisa a loja no WhatsApp sobre um pedido. `stage` define se é aviso de
+ * pedido recém-feito ("placed") ou de pagamento confirmado ("paid"). Busca os
+ * itens para compor a mensagem. Retorna o resultado do envio (nunca lança).
  */
-export async function notifyStoreOrderPaid(
-  order: PaidOrderInfo
+export async function notifyStoreOrder(
+  order: PaidOrderInfo,
+  stage: OrderStage
 ): Promise<WhatsappResult> {
   if (!hasUazapi) return { ok: false, error: "UAZAPI não configurada" };
 
@@ -126,7 +137,7 @@ export async function notifyStoreOrderPaid(
   const fone = order.customer_phone?.trim();
 
   const text =
-    `🛎️ *Novo pedido pago!*\n\n` +
+    `${STAGE_HEADER[stage]}\n\n` +
     `*Pedido:* ${order.reference_id}\n` +
     `*Cliente:* ${cliente}${fone ? ` (${fone})` : ""}\n` +
     `*Total:* ${formatBRL(order.total_cents ?? 0)}\n` +
@@ -134,6 +145,20 @@ export async function notifyStoreOrderPaid(
     itemsLine;
 
   return sendWhatsappText(storeNumber, text);
+}
+
+/** Aviso de pedido recém-feito (ainda aguardando pagamento). Não lança. */
+export function notifyStoreOrderPlaced(
+  order: PaidOrderInfo
+): Promise<WhatsappResult> {
+  return notifyStoreOrder(order, "placed");
+}
+
+/** Aviso de pagamento confirmado. Não lança. */
+export function notifyStoreOrderPaid(
+  order: PaidOrderInfo
+): Promise<WhatsappResult> {
+  return notifyStoreOrder(order, "paid");
 }
 
 /**

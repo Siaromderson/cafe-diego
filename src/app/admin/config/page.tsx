@@ -26,8 +26,10 @@ export default async function AdminConfig() {
           </p>
           <ul className="ml-4 list-disc space-y-0.5">
             <li>
-              <strong>Campo Grande:</strong> entrega é sempre{" "}
-              <strong>grátis</strong>. Retirada no local também não tem custo.
+              <strong>Frete dentro de Campo Grande:</strong> valor cobrado na
+              entrega em Campo Grande (padrão <strong>R$ 15,00</strong>). Deixe{" "}
+              <strong>vazio</strong> para entrega <strong>grátis</strong>.
+              Retirada no local nunca tem custo.
             </li>
             <li>
               <strong>Frete fora de Campo Grande:</strong> deixe{" "}
@@ -43,11 +45,17 @@ export default async function AdminConfig() {
           </ul>
         </HelpButton>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <SettingField
+          settingKey="ship_cg_fee"
+          label="Frete dentro de Campo Grande (R$)"
+          hint="Padrão 15,00. Vazio = grátis. Aparece no checkout e no site."
+          value={map.get("ship_cg_fee") ?? "15,00"}
+        />
         <SettingField
           settingKey="ship_out_fee"
           label="Frete fora de Campo Grande (R$)"
-          hint="Vazio = “A combinar”. Ex: 25,00 — aparece no checkout e no site. Em Campo Grande é sempre grátis."
+          hint="Vazio = “A combinar”. Ex: 25,00 — aparece no checkout e no site."
           value={map.get("ship_out_fee") ?? ""}
         />
         <SettingField

@@ -240,16 +240,19 @@ export default function CheckoutPage() {
   }
 
   const isPickup = shipMethod === PICKUP_KEY;
-  // Frete pela opção escolhida: retirada e entrega em Campo Grande são grátis;
-  // "Entrega a combinar" (fora de CG) usa o valor do painel, ou fica "A combinar"
-  // quando não há valor definido (paga só os produtos agora).
+  // Frete pela opção escolhida: retirada é grátis; entrega em Campo Grande usa o
+  // valor do painel (padrão R$ 15, ou grátis se zerado); "Entrega a combinar"
+  // (fora de CG) usa o valor do painel, ou fica "A combinar" quando não há valor
+  // definido (paga só os produtos agora).
   const isOutbound = shipMethod === DELIVERY_QUOTE_KEY;
+  const selectedOption = shipOptions.find((o) => o.key === shipMethod);
   const deliveryQuote = isOutbound && outDeliveryCents == null;
-  const shippingCents = isOutbound && outDeliveryCents != null ? outDeliveryCents : 0;
+  const shippingCents = deliveryQuote ? 0 : selectedOption?.cents ?? 0;
   /** Preço mostrado ao lado de cada opção de entrega. */
-  const priceForOption = (key: string) => {
-    if (key !== DELIVERY_QUOTE_KEY) return "Grátis";
-    return outDeliveryCents == null ? QUOTE_LABEL : BRL(outDeliveryCents);
+  const priceForOption = (o: ShipOption) => {
+    if (o.key === DELIVERY_QUOTE_KEY)
+      return outDeliveryCents == null ? QUOTE_LABEL : BRL(outDeliveryCents);
+    return o.cents > 0 ? BRL(o.cents) : "Grátis";
   };
   const subtotal = total();
   const selectedPay = payMethods.find((m) => m.key === payMethod);
@@ -440,7 +443,7 @@ export default function CheckoutPage() {
                     />
                     {o.label}
                   </span>
-                  <span className="text-gold">{priceForOption(o.key)}</span>
+                  <span className="text-gold">{priceForOption(o)}</span>
                 </span>
                 <span className="pl-7 text-xs text-cream/50">{o.eta}</span>
               </label>
@@ -508,8 +511,11 @@ export default function CheckoutPage() {
 
               {!isOutbound && (
                 <p className="mt-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
-                  Entrega em Campo Grande: <strong>grátis</strong> · receba em
-                  até 24h. 🛵
+                  Entrega em Campo Grande:{" "}
+                  <strong>
+                    {shippingCents > 0 ? BRL(shippingCents) : "grátis"}
+                  </strong>{" "}
+                  · receba em até 24h. 🛵
                 </p>
               )}
               {isOutbound &&
@@ -630,7 +636,7 @@ export default function CheckoutPage() {
                   : "Entrega"}
             </span>
             <span className="text-gold">
-              {isPickup ? "Grátis" : priceForOption(shipMethod)}
+              {selectedOption ? priceForOption(selectedOption) : "Grátis"}
             </span>
           </div>
           {deliveryQuote && (
