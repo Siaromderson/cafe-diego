@@ -21,6 +21,8 @@ export function ProductForm({
   const [moving, startMove] = useTransition();
   const [mainUrl, setMainUrl] = useState(product?.image_url ?? "");
   const [gallery, setGallery] = useState<string[]>(product?.images ?? []);
+  // Item é café por padrão; quando desmarcado, esconde tipo/sensorial/pirâmide.
+  const [isCoffee, setIsCoffee] = useState(product?.is_coffee ?? true);
   const p = product;
 
   const canReorder = index != null && total != null && total > 1;
@@ -84,6 +86,22 @@ export function ProductForm({
       className="glass space-y-4 rounded-2xl p-5"
     >
       {p && <input type="hidden" name="id" value={p.id} />}
+      {/* Envia o valor mesmo quando o checkbox está desmarcado. */}
+      <input type="hidden" name="is_coffee" value={isCoffee ? "on" : "off"} />
+
+      <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-cream/85">
+        <input
+          type="checkbox"
+          checked={isCoffee}
+          onChange={(e) => setIsCoffee(e.target.checked)}
+          className="h-4 w-4 accent-[#d9b777]"
+        />
+        Este item é café
+        <span className="text-xs text-cream/45">
+          (mostra tipo, classificação sensorial e Pirâmide do Café)
+        </span>
+      </label>
+
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <span className={label}>Nome</span>
@@ -136,13 +154,15 @@ export function ProductForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-4">
-        <div>
-          <span className={label}>Tipo</span>
-          <select name="type" defaultValue={p?.type ?? "grao"} className={field}>
-            <option value="grao">Em grãos</option>
-            <option value="moido">Moído</option>
-          </select>
-        </div>
+        {isCoffee && (
+          <div>
+            <span className={label}>Tipo</span>
+            <select name="type" defaultValue={p?.type ?? "grao"} className={field}>
+              <option value="grao">Em grãos</option>
+              <option value="moido">Moído</option>
+            </select>
+          </div>
+        )}
         <div>
           <span className={label}>Peso (g)</span>
           <input
@@ -222,40 +242,44 @@ export function ProductForm({
         />
       </div>
 
-      <div>
-        <span className={label}>Classificação sensorial (0 a 5 — bolinhas)</span>
-        <div className="mt-1 grid gap-3 sm:grid-cols-3">
-          {SENSORY_ATTRS.map(({ key, label: attrLabel }) => (
-            <div key={key}>
-              <span className="text-xs text-cream/55">{attrLabel}</span>
-              <input
-                name={key}
-                type="number"
-                min={0}
-                max={5}
-                defaultValue={(p?.[key] as number | undefined) ?? 3}
-                className={field}
-              />
-            </div>
-          ))}
+      {isCoffee && (
+        <div>
+          <span className={label}>Classificação sensorial (0 a 5 — bolinhas)</span>
+          <div className="mt-1 grid gap-3 sm:grid-cols-3">
+            {SENSORY_ATTRS.map(({ key, label: attrLabel }) => (
+              <div key={key}>
+                <span className="text-xs text-cream/55">{attrLabel}</span>
+                <input
+                  name={key}
+                  type="number"
+                  min={0}
+                  max={5}
+                  defaultValue={(p?.[key] as number | undefined) ?? 3}
+                  className={field}
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <span className={label}>Nível (Pirâmide do Café)</span>
-          <select
-            name="tier"
-            defaultValue={p?.tier ?? "superior"}
-            className={field}
-          >
-            {COFFEE_TIERS.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {isCoffee && (
+          <div>
+            <span className={label}>Nível (Pirâmide do Café)</span>
+            <select
+              name="tier"
+              defaultValue={p?.tier ?? "superior"}
+              className={field}
+            >
+              {COFFEE_TIERS.map((t) => (
+                <option key={t.key} value={t.key}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <span className={label}>Ordem</span>
           <input
