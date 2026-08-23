@@ -21,6 +21,10 @@ export interface Product {
   aftertaste: number; // Retrogosto
   intensity?: number; // legado — não é mais exibido
   tier: CoffeeTier; // nível na Pirâmide do Café
+  // Quando false, é um item que não é café (ex.: caneca, filtro, brinde):
+  // esconde o tipo grão/moído, a classificação sensorial e a Pirâmide do Café.
+  // Ausente/undefined = café (comportamento padrão dos produtos já cadastrados).
+  is_coffee?: boolean;
   image_url: string;
   images?: string[]; // galeria — fotos extras do produto
   accent: "wine" | "gold";
@@ -28,6 +32,9 @@ export interface Product {
   sort?: number;
   active: boolean;
 }
+
+/** Um item é tratado como café a menos que marcado explicitamente como não-café. */
+export const isCoffee = (p: Product): boolean => p.is_coffee !== false;
 
 export interface CartLine {
   product: Product;

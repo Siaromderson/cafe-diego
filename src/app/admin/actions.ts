@@ -155,6 +155,7 @@ export async function saveProduct(formData: FormData) {
     aroma: Number(formData.get("aroma") || 3),
     aftertaste: Number(formData.get("aftertaste") || 3),
     tier: String(formData.get("tier") || "superior"),
+    is_coffee: formData.get("is_coffee") !== "off",
     image_url,
     images,
     stock: Number(formData.get("stock") || 0),
