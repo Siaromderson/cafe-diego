@@ -144,6 +144,7 @@ export async function saveProduct(formData: FormData) {
     slug: String(formData.get("slug") || "").trim(),
     name: String(formData.get("name") || "").trim(),
     line: String(formData.get("line") || ""),
+    category: String(formData.get("category") || "cafe"),
     type: String(formData.get("type") || "grao"),
     weight_g: Number(formData.get("weight_g") || 0),
     price_cents: Math.round(Number(formData.get("price_reais") || 0) * 100),
@@ -161,10 +162,40 @@ export async function saveProduct(formData: FormData) {
     active: formData.get("active") === "on",
     sort: Number(formData.get("sort") || 0),
   };
-  if (id) await sb.from(T.products).update(row).eq("id", id);
-  else await sb.from(T.products).insert(row);
+  // Grava no banco. Se a coluna "category" ainda não existir (migração
+  // supabase/add_category.sql não rodada), o Postgres devolve erro 42703 /
+  // PGRST204 citando "category" — nesse caso salvamos sem ela para não travar
+  // o cadastro de itens que não são café. Qualquer outra falha é propagada
+  // com mensagem legível, em vez de virar uma tela branca de erro.
+  const write = (data: Record<string, unknown>) =>
+    id
+      ? sb.from(T.products).update(data).eq("id", id)
+      : sb.from(T.products).insert(data);
+
+  let { error } = await write(row);
+  if (error && isMissingCategoryColumn(error)) {
+    const { category: _drop, ...rest } = row;
+    void _drop;
+    ({ error } = await write(rest));
+  }
+  if (error) {
+    throw new Error(`Não foi possível salvar o produto: ${error.message}`);
+  }
+
   revalidatePath("/admin/produtos");
   revalidatePath("/");
+}
+
+/** Erro do Postgres/PostgREST indicando que a coluna "category" não existe. */
+function isMissingCategoryColumn(error: {
+  code?: string;
+  message?: string;
+}): boolean {
+  const msg = (error.message ?? "").toLowerCase();
+  return (
+    (error.code === "42703" || error.code === "PGRST204") &&
+    msg.includes("category")
+  );
 }
 
 export async function deleteProduct(id: string) {

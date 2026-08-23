@@ -17,6 +17,7 @@ export function ProductModal({
   const add = useCart((s) => s.add);
   const images = productImages(product);
   const [active, setActive] = useState(0);
+  const isCafe = product.category !== "itens";
 
   const go = (dir: number) =>
     setActive((i) => (i + dir + images.length) % images.length);
@@ -118,38 +119,48 @@ export function ProductModal({
 
           {/* Informações */}
           <div className="flex flex-col">
-            <span
-              className={`mb-3 inline-flex w-fit rounded-full px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider ${
-                product.type === "grao"
-                  ? "bg-wine-bright/90 text-white"
-                  : "bg-gold/90 text-coffee-2"
-              }`}
-            >
-              {product.type === "grao" ? "Em grãos" : "Moído"}
-            </span>
+            {isCafe && (
+              <span
+                className={`mb-3 inline-flex w-fit rounded-full px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider ${
+                  product.type === "grao"
+                    ? "bg-wine-bright/90 text-white"
+                    : "bg-gold/90 text-coffee-2"
+                }`}
+              >
+                {product.type === "grao" ? "Em grãos" : "Moído"}
+              </span>
+            )}
 
             <p className="text-xs uppercase tracking-[0.3em] text-gold/80">
-              {product.line} · {product.weight_g}g
+              {[isCafe ? product.line : "", `${product.weight_g}g`]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <h2 className="font-display text-3xl font-semibold text-cream">
                 {product.name}
               </h2>
-              <span className="rounded-full border border-gold/40 px-2.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-gold">
-                {tierLabel(product.tier)}
-              </span>
+              {isCafe && (
+                <span className="rounded-full border border-gold/40 px-2.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-gold">
+                  {tierLabel(product.tier)}
+                </span>
+              )}
             </div>
             <p className="mt-3 text-sm leading-relaxed text-cream/70">
               {product.description}
             </p>
 
-            <div className="mt-5 border-t border-white/10 pt-5">
-              <SensoryMeters product={product} />
-            </div>
+            {isCafe && (
+              <>
+                <div className="mt-5 border-t border-white/10 pt-5">
+                  <SensoryMeters product={product} />
+                </div>
 
-            <div className="mt-5 border-t border-white/10 pt-5">
-              <CoffeePyramid tier={product.tier} />
-            </div>
+                <div className="mt-5 border-t border-white/10 pt-5">
+                  <CoffeePyramid tier={product.tier} />
+                </div>
+              </>
+            )}
 
             <div className="mt-auto flex items-end justify-between pt-6">
               <div>

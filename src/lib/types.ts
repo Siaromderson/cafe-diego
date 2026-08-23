@@ -1,5 +1,8 @@
 export type ProductType = "grao" | "moido";
 
+/** Categoria do produto: café ou outros itens (acessórios, brindes, etc.). */
+export type ProductCategory = "cafe" | "itens";
+
 /** Nível na "Pirâmide do Café" (topo = melhor). */
 export type CoffeeTier = "especial" | "gourmet" | "superior" | "tradicional";
 
@@ -8,6 +11,7 @@ export interface Product {
   slug: string;
   name: string;
   line: string; // ex: "100% Arábica"
+  category: ProductCategory; // "cafe" (padrão) ou "itens"
   type: ProductType;
   weight_g: number;
   price_cents: number;
@@ -46,6 +50,12 @@ export const SENSORY_ATTRS = [
   key: keyof Product;
   label: string;
 }>;
+
+/** Categorias de produto exibidas no cadastro. */
+export const PRODUCT_CATEGORIES = [
+  { key: "cafe", label: "Café" },
+  { key: "itens", label: "Itens" },
+] as const satisfies ReadonlyArray<{ key: ProductCategory; label: string }>;
 
 /** Níveis da Pirâmide do Café, do topo (melhor) para a base. */
 export const COFFEE_TIERS = [

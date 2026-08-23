@@ -2,7 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { saveProduct, deleteProduct, moveProduct } from "@/app/admin/actions";
-import { COFFEE_TIERS, SENSORY_ATTRS, type Product } from "@/lib/types";
+import {
+  COFFEE_TIERS,
+  PRODUCT_CATEGORIES,
+  SENSORY_ATTRS,
+  type Product,
+} from "@/lib/types";
 
 const field =
   "w-full rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-sm text-cream placeholder:text-cream/35 outline-none focus:border-gold/60";
@@ -21,7 +26,9 @@ export function ProductForm({
   const [moving, startMove] = useTransition();
   const [mainUrl, setMainUrl] = useState(product?.image_url ?? "");
   const [gallery, setGallery] = useState<string[]>(product?.images ?? []);
+  const [category, setCategory] = useState(product?.category ?? "cafe");
   const p = product;
+  const isCafe = category === "cafe";
 
   const canReorder = index != null && total != null && total > 1;
   const isFirst = index === 0;
@@ -94,9 +101,26 @@ export function ProductForm({
           <input name="slug" defaultValue={p?.slug} className={field} required />
         </div>
         <div>
-          <span className={label}>Linha</span>
-          <input name="line" defaultValue={p?.line} className={field} />
+          <span className={label}>Categoria</span>
+          <select
+            name="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as typeof category)}
+            className={field}
+          >
+            {PRODUCT_CATEGORIES.map((c) => (
+              <option key={c.key} value={c.key}>
+                {c.label}
+              </option>
+            ))}
+          </select>
         </div>
+        {isCafe && (
+          <div>
+            <span className={label}>Linha</span>
+            <input name="line" defaultValue={p?.line} className={field} />
+          </div>
+        )}
         <div>
           <span className={label}>Imagem principal</span>
           <input type="hidden" name="image_url" value={mainUrl} readOnly />
@@ -136,13 +160,19 @@ export function ProductForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-4">
-        <div>
-          <span className={label}>Tipo</span>
-          <select name="type" defaultValue={p?.type ?? "grao"} className={field}>
-            <option value="grao">Em grãos</option>
-            <option value="moido">Moído</option>
-          </select>
-        </div>
+        {isCafe && (
+          <div>
+            <span className={label}>Tipo</span>
+            <select
+              name="type"
+              defaultValue={p?.type ?? "grao"}
+              className={field}
+            >
+              <option value="grao">Em grãos</option>
+              <option value="moido">Moído</option>
+            </select>
+          </div>
+        )}
         <div>
           <span className={label}>Peso (g)</span>
           <input
@@ -222,40 +252,44 @@ export function ProductForm({
         />
       </div>
 
-      <div>
-        <span className={label}>Classificação sensorial (0 a 5 — bolinhas)</span>
-        <div className="mt-1 grid gap-3 sm:grid-cols-3">
-          {SENSORY_ATTRS.map(({ key, label: attrLabel }) => (
-            <div key={key}>
-              <span className="text-xs text-cream/55">{attrLabel}</span>
-              <input
-                name={key}
-                type="number"
-                min={0}
-                max={5}
-                defaultValue={(p?.[key] as number | undefined) ?? 3}
-                className={field}
-              />
-            </div>
-          ))}
+      {isCafe && (
+        <div>
+          <span className={label}>Classificação sensorial (0 a 5 — bolinhas)</span>
+          <div className="mt-1 grid gap-3 sm:grid-cols-3">
+            {SENSORY_ATTRS.map(({ key, label: attrLabel }) => (
+              <div key={key}>
+                <span className="text-xs text-cream/55">{attrLabel}</span>
+                <input
+                  name={key}
+                  type="number"
+                  min={0}
+                  max={5}
+                  defaultValue={(p?.[key] as number | undefined) ?? 3}
+                  className={field}
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <span className={label}>Nível (Pirâmide do Café)</span>
-          <select
-            name="tier"
-            defaultValue={p?.tier ?? "superior"}
-            className={field}
-          >
-            {COFFEE_TIERS.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {isCafe && (
+          <div>
+            <span className={label}>Nível (Pirâmide do Café)</span>
+            <select
+              name="tier"
+              defaultValue={p?.tier ?? "superior"}
+              className={field}
+            >
+              {COFFEE_TIERS.map((t) => (
+                <option key={t.key} value={t.key}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <span className={label}>Ordem</span>
           <input

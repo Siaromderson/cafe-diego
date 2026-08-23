@@ -72,8 +72,16 @@ export function CartDrawer() {
                       </button>
                     </div>
                     <p className="text-xs text-cream/50">
-                      {l.product.weight_g}g ·{" "}
-                      {l.product.type === "grao" ? "em grãos" : "moído"}
+                      {[
+                        `${l.product.weight_g}g`,
+                        l.product.category !== "itens"
+                          ? l.product.type === "grao"
+                            ? "em grãos"
+                            : "moído"
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                     <div className="mt-auto flex items-center justify-between">
                       <div className="flex items-center gap-2 rounded-full border border-white/15 px-1">
