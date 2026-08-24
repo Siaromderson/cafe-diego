@@ -117,7 +117,12 @@ export async function deleteCustomer(opts: { phone?: string; email?: string }) {
   revalidatePath("/admin/entregues");
 }
 
-export async function saveProduct(formData: FormData) {
+export type SaveProductState = { ok: boolean; error?: string } | null;
+
+export async function saveProduct(
+  _prev: SaveProductState,
+  formData: FormData
+): Promise<SaveProductState> {
   const sb = await guard();
   const id = formData.get("id") as string | null;
 
@@ -162,40 +167,59 @@ export async function saveProduct(formData: FormData) {
     active: formData.get("active") === "on",
     sort: Number(formData.get("sort") || 0),
   };
-  // Grava no banco. Se a coluna "category" ainda não existir (migração
-  // supabase/add_category.sql não rodada), o Postgres devolve erro 42703 /
-  // PGRST204 citando "category" — nesse caso salvamos sem ela para não travar
-  // o cadastro de itens que não são café. Qualquer outra falha é propagada
-  // com mensagem legível, em vez de virar uma tela branca de erro.
-  const write = (data: Record<string, unknown>) =>
-    id
-      ? sb.from(T.products).update(data).eq("id", id)
-      : sb.from(T.products).insert(data);
+  // Grava no banco de forma resiliente: se o Postgres/PostgREST reclamar de
+  // uma coluna que não existe (migração ainda não rodada — category, tier,
+  // sweetness, etc.), removemos essa coluna e tentamos de novo. Assim o
+  // cadastro funciona mesmo com o banco atrás do código. Outras falhas
+  // (slug duplicado, constraint) voltam como mensagem legível para o painel.
+  const data: Record<string, unknown> = { ...row };
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const { error } = id
+      ? await sb.from(T.products).update(data).eq("id", id)
+      : await sb.from(T.products).insert(data);
 
-  let { error } = await write(row);
-  if (error && isMissingCategoryColumn(error)) {
-    const { category: _drop, ...rest } = row;
-    void _drop;
-    ({ error } = await write(rest));
-  }
-  if (error) {
-    throw new Error(`Não foi possível salvar o produto: ${error.message}`);
-  }
+    if (!error) {
+      revalidatePath("/admin/produtos");
+      revalidatePath("/");
+      return { ok: true };
+    }
 
-  revalidatePath("/admin/produtos");
-  revalidatePath("/");
+    const missing = missingColumnName(error);
+    if (missing && missing in data) {
+      delete data[missing];
+      continue; // tenta de novo sem a coluna que o banco não conhece
+    }
+    return { ok: false, error: friendlyDbError(error) };
+  }
+  return {
+    ok: false,
+    error: "Não foi possível salvar: o banco recusou vários campos do produto.",
+  };
 }
 
-/** Erro do Postgres/PostgREST indicando que a coluna "category" não existe. */
-function isMissingCategoryColumn(error: {
+/**
+ * Nome da coluna que o banco não reconhece, extraído do erro.
+ * 42703 (Postgres): column "x" does not exist.
+ * PGRST204 (PostgREST): Could not find the 'x' column ... in the schema cache.
+ */
+function missingColumnName(error: {
   code?: string;
   message?: string;
-}): boolean {
-  const msg = (error.message ?? "").toLowerCase();
-  return (
-    (error.code === "42703" || error.code === "PGRST204") &&
-    msg.includes("category")
-  );
+}): string | null {
+  if (error.code !== "42703" && error.code !== "PGRST204") return null;
+  const m = (error.message ?? "").match(/['"]([a-z_]+)['"]/i);
+  return m ? m[1] : null;
+}
+
+/** Traduz o erro do banco para uma frase curta e útil no painel. */
+function friendlyDbError(error: { code?: string; message?: string }): string {
+  if (error.code === "23505") {
+    return "Já existe um produto com esse slug. Escolha outro slug (URL).";
+  }
+  if (error.code === "23514") {
+    return "Um valor não é aceito pelo banco (categoria/tipo/nível). Verifique se rodou as migrações mais recentes.";
+  }
+  return `Não foi possível salvar o produto: ${error.message ?? "erro desconhecido"}`;
 }
 
 export async function deleteProduct(id: string) {

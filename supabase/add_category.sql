@@ -8,15 +8,12 @@
 alter table cafe_diego_products
   add column if not exists category text not null default 'cafe';
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint where conname = 'cafe_diego_products_category_chk'
-  ) then
-    alter table cafe_diego_products
-      add constraint cafe_diego_products_category_chk
-      check (category in ('cafe','itens'));
-  end if;
-end $$;
+-- Recria a checagem sempre, para corrigir uma constraint antiga que porventura
+-- só aceitasse 'cafe'. Garante que 'itens' é aceito. Seguro rodar de novo.
+alter table cafe_diego_products
+  drop constraint if exists cafe_diego_products_category_chk;
+alter table cafe_diego_products
+  add constraint cafe_diego_products_category_chk
+  check (category in ('cafe','itens'));
 
 -- Produtos já cadastrados continuam como café (default acima).

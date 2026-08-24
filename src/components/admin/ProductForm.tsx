@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { saveProduct, deleteProduct, moveProduct } from "@/app/admin/actions";
 import {
   COFFEE_TIERS,
@@ -24,6 +24,7 @@ export function ProductForm({
 }) {
   const [open, setOpen] = useState(!product);
   const [moving, startMove] = useTransition();
+  const [state, formAction, saving] = useActionState(saveProduct, null);
   const [mainUrl, setMainUrl] = useState(product?.image_url ?? "");
   const [gallery, setGallery] = useState<string[]>(product?.images ?? []);
   const [category, setCategory] = useState(product?.category ?? "cafe");
@@ -87,7 +88,7 @@ export function ProductForm({
 
   return (
     <form
-      action={saveProduct}
+      action={formAction}
       className="glass space-y-4 rounded-2xl p-5"
     >
       {p && <input type="hidden" name="id" value={p.id} />}
@@ -311,12 +312,24 @@ export function ProductForm({
         Produto ativo (visível na loja)
       </label>
 
+      {state?.error && (
+        <p className="rounded-lg border border-wine-bright/40 bg-wine-bright/10 px-4 py-2 text-sm text-wine-bright">
+          {state.error}
+        </p>
+      )}
+      {state?.ok && (
+        <p className="rounded-lg border border-gold/40 bg-gold/10 px-4 py-2 text-sm text-gold">
+          Produto salvo com sucesso.
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-3 pt-2">
         <button
           type="submit"
-          className="btn-gold rounded-full px-6 py-2.5 text-sm uppercase tracking-wide"
+          disabled={saving}
+          className="btn-gold rounded-full px-6 py-2.5 text-sm uppercase tracking-wide disabled:opacity-50"
         >
-          Salvar
+          {saving ? "Salvando…" : "Salvar"}
         </button>
         {p && (
           <>
